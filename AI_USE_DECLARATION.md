@@ -8,6 +8,6 @@ Write **No Generative AI used** when applicable.
 
 I confirm that I understand and can explain all submitted work. I have verified the accuracy of any AI-assisted material and disclosed its use honestly.
 
-- Student name:
-- Student ID:
-- Date:
+- Student name: Fatin Nur Hannah Binti Muhammad Ashraf
+- Student ID: QIU-202410-007383
+- Date: 
