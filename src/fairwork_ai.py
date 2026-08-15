@@ -1,352 +1,361 @@
 """
-fairwork_ai.py
+FairWork AI - Core AI Search Module
 
-FairWork AI
-AI Method: Uniform Cost Search (UCS)
+AI methods:
+1. Uniform Cost Search (UCS) - baseline
+2. A* Search - improved method
 
-Author: Your Name
+The system matches students with suitable part-time jobs
+while respecting hard constraints such as:
+- minimum age
+- maximum working hours
+- maximum travel distance
+- class schedule conflicts
+
+Job data is loaded from a JSON file.
 """
 
-# ==========================================================
-# Imports
-# ==========================================================
+from __future__ import annotations
 
-import csv
 import heapq
+import json
+import time
+
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional
+
 
 # ==========================================================
-# Student Class
+# Student
 # ==========================================================
 
 @dataclass
 class Student:
-    """
-    Represents a student's profile used by the FairWork AI agent.
-    """
+    """Represents a student's profile."""
 
     age: int
     skills: list[str]
-    available_start: int
-    available_end: int
+    class_start: int
+    class_end: int
     max_hours: int
     max_distance: float
 
-    def display(self):
-        print("\n========== Student Profile ==========")
-        print(f"Age               : {self.age}")
-        print(f"Skills            : {', '.join(self.skills)}")
-        print(
-            f"Available Time    : "
-            f"{self.available_start}:00 - {self.available_end}:00"
-        )
-        print(f"Maximum Hours     : {self.max_hours} hrs/week")
-        print(f"Maximum Distance  : {self.max_distance} km")
-        print("=====================================\n")
 
 # ==========================================================
-# Job Class
+# Job
 # ==========================================================
 
-@dataclass(order=True)
+@dataclass
 class Job:
-    """
-    Represents a part-time job vacancy.
+    """Represents a part-time job vacancy."""
 
-    The 'cost' attribute is placed first so that heapq can
-    automatically compare Job objects based on their UCS cost.
-    """
+    id: str
+    title: str
+    company: str
+    min_age: int
+    skills: list[str]
+    distance: float
+    hours: int
+    salary: float
+    shift_start: int
+    shift_end: int
 
-    cost: float = 0
 
-    title: str = ""
-    min_age: int = 18
-    required_skill: str = ""
-
-    distance: float = 0
-    hours: int = 0
-    salary: float = 0
-
-    shift_start: int = 0
-    shift_end: int = 0
-
-    def display(self):
-        """Display job information."""
-
-        print("\n========== Job Information ==========")
-        print(f"Job Title         : {self.title}")
-        print(f"Minimum Age       : {self.min_age}")
-        print(f"Required Skill    : {self.required_skill}")
-        print(f"Distance          : {self.distance} km")
-        print(f"Working Hours     : {self.hours} hrs/week")
-        print(f"Salary            : RM {self.salary}/hour")
-        print(
-            f"Shift             : "
-            f"{self.shift_start}:00 - {self.shift_end}:00"
-        )
-        print(f"UCS Cost          : {self.cost:.2f}")
-        print("=====================================\n")
-
-        # ==========================================================
-# Load Jobs from CSV
+# ==========================================================
+# Search Result
 # ==========================================================
 
-def load_jobs(filename):
-    """
-    Load job vacancies from a CSV file.
+@dataclass
+class SearchResult:
+    """Stores the result and performance metrics of a search."""
 
-    Parameters
-    ----------
-    filename : str
-        Path to the jobs.csv file.
+    job: Optional[Job]
+    cost: float
+    jobs_expanded: int
+    execution_time_s: float
 
-    Returns
-    -------
-    list[Job]
-        A list of Job objects.
+    @property
+    def found(self) -> bool:
+        return self.job is not None
+
+
+# ==========================================================
+# Load JSON Data
+# ==========================================================
+
+def load_jobs(path: str | Path) -> list[Job]:
     """
+    Load simulated job vacancy data from a JSON file.
+    """
+
+    path = Path(path)
+
+    with open(path, "r", encoding="utf-8") as file:
+        data = json.load(file)
 
     jobs = []
 
-    try:
-
-        with open(filename, mode="r", newline="", encoding="utf-8") as csv_file:
-
-            reader = csv.DictReader(csv_file)
-
-            for row in reader:
-
-                job = Job(
-                    title=row["title"],
-                    min_age=int(row["min_age"]),
-                    required_skill=row["required_skill"],
-                    distance=float(row["distance"]),
-                    hours=int(row["hours"]),
-                    salary=float(row["salary"]),
-                    shift_start=int(row["shift_start"]),
-                    shift_end=int(row["shift_end"]),
-                    cost=0
-                )
-
-                jobs.append(job)
-
-    except FileNotFoundError:
-        print(f"\nError: '{filename}' was not found.")
-        return []
-
-    except KeyError as e:
-        print(f"\nError: Missing column in CSV file: {e}")
-        return []
-
-    except ValueError:
-        print("\nError: Invalid data format in jobs.csv.")
-        return []
+    for item in data:
+        jobs.append(
+            Job(
+                id=item["id"],
+                title=item["title"],
+                company=item["company"],
+                min_age=item["min_age"],
+                skills=item["skills"],
+                distance=item["distance"],
+                hours=item["hours"],
+                salary=item["salary"],
+                shift_start=item["shift_start"],
+                shift_end=item["shift_end"],
+            )
+        )
 
     return jobs
 
+
 # ==========================================================
-# Check Job Constraints
+# Constraint Checking
 # ==========================================================
 
-def check_constraints(student, job):
+def check_constraints(student: Student, job: Job) -> bool:
     """
-    Check whether a job satisfies all mandatory constraints.
+    Check hard constraints.
 
-    Parameters
-    ----------
-    student : Student
-        Student profile entered by the user.
-
-    job : Job
-        Job vacancy loaded from jobs.csv.
-
-    Returns
-    -------
-    tuple(bool, str)
-        (True, "Eligible") if the job is suitable.
-        (False, reason) if the job violates a constraint.
+    A job is rejected if:
+    - student is below minimum age
+    - working hours exceed student's maximum
+    - distance exceeds student's maximum
+    - work shift overlaps with class
     """
 
-    # ------------------------------------------------------
-    # Age Requirement
-    # ------------------------------------------------------
+    # Age constraint
     if student.age < job.min_age:
-        return False, "Student does not meet the minimum age requirement."
+        return False
 
-    # ------------------------------------------------------
-    # Working Hours
-    # ------------------------------------------------------
+    # Maximum weekly working hours
     if job.hours > student.max_hours:
-        return False, "Job exceeds the student's maximum working hours."
+        return False
 
-    # ------------------------------------------------------
-    # Travel Distance
-    # ------------------------------------------------------
+    # Maximum travel distance
     if job.distance > student.max_distance:
-        return False, "Job exceeds the student's maximum travel distance."
+        return False
 
-    # ------------------------------------------------------
-    # Skill Requirement
-    # ------------------------------------------------------
-    if job.required_skill not in student.skills:
-        return False, "Required skill not found in the student's profile."
+    # Class schedule conflict
+    if (
+        job.shift_start < student.class_end
+        and job.shift_end > student.class_start
+    ):
+        return False
 
-    # ------------------------------------------------------
-    # Availability Check
-    # Student must be available for the entire shift.
-    # ------------------------------------------------------
-    if job.shift_start < student.available_start:
-        return False, "Job starts before the student's available time."
+    return True
 
-    if job.shift_end > student.available_end:
-        return False, "Job ends after the student's available time."
-
-    # ------------------------------------------------------
-    # All Constraints Passed
-    # ------------------------------------------------------
-    return True, "Eligible"       
 
 # ==========================================================
-# Calculate Job Cost
+# Cost Function
 # ==========================================================
 
-def calculate_cost(student, job):
+def calculate_cost(student: Student, job: Job) -> Optional[float]:
     """
-    Calculate the Uniform Cost Search (UCS) cost for a job.
+    Calculate the cost of a valid job.
 
-    Lower cost = Better recommendation.
+    Lower cost = better match.
 
-    Cost Factors
-    ------------
-    • Distance
-    • Working hours
-    • Skill match
-    • Salary
+    Cost components:
+    - distance penalty
+    - working-hours penalty
+    - skill mismatch penalty
     """
 
-    cost = 0
-
-    # ------------------------------------------------------
-    # Distance Cost
-    # Closer jobs are preferred.
-    # ------------------------------------------------------
-    cost += job.distance
-
-    # ------------------------------------------------------
-    # Working Hours Cost
-    # Longer working hours increase the cost.
-    # ------------------------------------------------------
-    cost += job.hours * 0.5
-
-    # ------------------------------------------------------
-    # Skill Match
-    # If the student's skill matches the job requirement,
-    # reduce the cost.
-    # ------------------------------------------------------
-    if job.required_skill in student.skills:
-        cost -= 5
-    else:
-        cost += 10
-
-    # ------------------------------------------------------
-    # Salary Benefit
-    # Higher salary reduces the overall cost.
-    # ------------------------------------------------------
-    cost -= job.salary * 0.2
-
-    # Prevent negative costs.
-    if cost < 0:
-        cost = 0
-
-    return round(cost, 2)
-
-# ==========================================================
-# Uniform Cost Search (UCS)
-# ==========================================================
-
-def uniform_cost_search(student, jobs):
-    """
-    Perform Uniform Cost Search to recommend the most suitable job.
-
-    Parameters
-    ----------
-    student : Student
-        Student profile.
-
-    jobs : list[Job]
-        List of available jobs.
-
-    Returns
-    -------
-    Job | None
-        The lowest-cost suitable job, or None if no suitable job exists.
-    """
-
-    # Priority queue (frontier)
-    frontier = []
-
-    # Explored jobs (to avoid processing duplicates)
-    explored = set()
-
-    print("\n======================================")
-    print("Uniform Cost Search")
-    print("======================================")
-
-    # ------------------------------------------------------
-    # Add valid jobs to the frontier
-    # ------------------------------------------------------
-    for job in jobs:
-
-        valid, reason = check_constraints(student, job)
-
-        if not valid:
-            print(f"Rejected: {job.title}")
-            print(f"Reason   : {reason}\n")
-            continue
-
-        # Calculate UCS cost
-        job.cost = calculate_cost(student, job)
-
-        # Push into priority queue
-        heapq.heappush(frontier, job)
-
-        print(f"Added to Frontier: {job.title}")
-        print(f"Cost             : {job.cost:.2f}\n")
-
-    # ------------------------------------------------------
-    # No valid jobs
-    # ------------------------------------------------------
-    if not frontier:
+    if not check_constraints(student, job):
         return None
 
-    print("--------------------------------------")
-    print("Expanding Jobs")
-    print("--------------------------------------")
+    cost = 0.0
 
-    # ------------------------------------------------------
-    # UCS Loop
-    # ------------------------------------------------------
-    while frontier:
+    # Distance penalty
+    cost += job.distance
 
-        # Remove the lowest-cost job
-        current = heapq.heappop(frontier)
+    # Working-hours penalty
+    cost += job.hours * 0.5
 
-        # Skip duplicates
-        if current.title in explored:
+    # Skill matching
+    student_skills = {
+        skill.strip().lower()
+        for skill in student.skills
+    }
+
+    job_skills = {
+        skill.strip().lower()
+        for skill in job.skills
+    }
+
+    matched_skills = student_skills.intersection(job_skills)
+
+    if not matched_skills:
+        cost += 10
+
+    else:
+        # Small reward for each matched skill
+        cost -= len(matched_skills) * 2
+
+    return max(cost, 0.0)
+
+
+# ==========================================================
+# Heuristic
+# ==========================================================
+
+def heuristic(student: Student, job: Job) -> float:
+    """
+    Estimate the remaining matching cost.
+
+    The heuristic uses information that contributes to
+    job suitability.
+
+    It is deliberately lightweight so that A* can be
+    compared against UCS.
+    """
+
+    student_skills = {
+        skill.strip().lower()
+        for skill in student.skills
+    }
+
+    job_skills = {
+        skill.strip().lower()
+        for skill in job.skills
+    }
+
+    matched = len(student_skills.intersection(job_skills))
+
+    if matched == 0:
+        skill_estimate = 10.0
+    else:
+        skill_estimate = 0.0
+
+    distance_estimate = job.distance
+
+    return distance_estimate + skill_estimate
+
+
+# ==========================================================
+# Uniform Cost Search
+# ==========================================================
+
+def uniform_cost_search(
+    student: Student,
+    jobs: list[Job]
+) -> SearchResult:
+    """
+    Baseline uninformed search.
+
+    UCS selects the currently available job with the
+    lowest accumulated cost.
+    """
+
+    start_time = time.perf_counter()
+
+    frontier = []
+
+    counter = 0
+
+    jobs_expanded = 0
+
+    for job in jobs:
+
+        cost = calculate_cost(student, job)
+
+        if cost is None:
             continue
 
-        explored.add(current.title)
-
-        print(
-            f"Expanded: {current.title:<25}"
-            f"Cost = {current.cost:.2f}"
+        heapq.heappush(
+            frontier,
+            (cost, counter, job)
         )
 
-        # --------------------------------------------------
-        # Goal Test
-        # --------------------------------------------------
-        # Since all jobs are already valid, the first job
-        # removed from the priority queue has the minimum cost.
-        return current
+        counter += 1
 
-    return None
+    while frontier:
+
+        cost, _, job = heapq.heappop(frontier)
+
+        jobs_expanded += 1
+
+        return SearchResult(
+            job=job,
+            cost=cost,
+            jobs_expanded=jobs_expanded,
+            execution_time_s=time.perf_counter() - start_time
+        )
+
+    return SearchResult(
+        job=None,
+        cost=float("inf"),
+        jobs_expanded=jobs_expanded,
+        execution_time_s=time.perf_counter() - start_time
+    )
+
+
+# ==========================================================
+# A* Search
+# ==========================================================
+
+def a_star_search(
+    student: Student,
+    jobs: list[Job]
+) -> SearchResult:
+    """
+    Improved informed search using A*.
+
+    f(n) = g(n) + h(n)
+
+    g(n) = current matching cost
+    h(n) = estimated remaining matching cost
+    """
+
+    start_time = time.perf_counter()
+
+    frontier = []
+
+    counter = 0
+
+    jobs_expanded = 0
+
+    for job in jobs:
+
+        cost = calculate_cost(student, job)
+
+        if cost is None:
+            continue
+
+        h = heuristic(student, job)
+
+        f = cost + h
+
+        heapq.heappush(
+            frontier,
+            (f, counter, cost, job)
+        )
+
+        counter += 1
+
+    while frontier:
+
+        _, _, cost, job = heapq.heappop(frontier)
+
+        jobs_expanded += 1
+
+        return SearchResult(
+            job=job,
+            cost=cost,
+            jobs_expanded=jobs_expanded,
+            execution_time_s=time.perf_counter() - start_time
+        )
+
+    return SearchResult(
+        job=None,
+        cost=float("inf"),
+        jobs_expanded=jobs_expanded,
+        execution_time_s=time.perf_counter() - start_time
+    )

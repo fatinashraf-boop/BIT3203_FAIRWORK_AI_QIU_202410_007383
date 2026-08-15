@@ -1,0 +1,86 @@
+[
+    {
+        "id": "J001",
+        "title": "Cafe Crew",
+        "company": "Campus Cafe",
+        "min_age": 18,
+        "skills": ["Customer Service"],
+        "distance": 3,
+        "hours": 10,
+        "salary": 12.00,
+        "shift_start": 18,
+        "shift_end": 22
+    },
+    {
+        "id": "J002",
+        "title": "Retail Assistant",
+        "company": "City Retail",
+        "min_age": 18,
+        "skills": ["Communication", "Customer Service"],
+        "distance": 7,
+        "hours": 12,
+        "salary": 13.00,
+        "shift_start": 18,
+        "shift_end": 22
+    },
+    {
+        "id": "J003",
+        "title": "Data Entry Assistant",
+        "company": "Office Support",
+        "min_age": 18,
+        "skills": ["Microsoft Office", "Data Entry"],
+        "distance": 5,
+        "hours": 8,
+        "salary": 15.00,
+        "shift_start": 9,
+        "shift_end": 13
+    },
+    {
+        "id": "J004",
+        "title": "Delivery Rider",
+        "company": "Quick Delivery",
+        "min_age": 21,
+        "skills": ["Driving"],
+        "distance": 10,
+        "hours": 15,
+        "salary": 18.00,
+        "shift_start": 18,
+        "shift_end": 23
+    },
+    {
+        "id": "J005",
+        "title": "Bookstore Assistant",
+        "company": "Campus Bookstore",
+        "min_age": 18,
+        "skills": ["Customer Service"],
+        "distance": 4,
+        "hours": 8,
+        "salary": 11.00,
+        "shift_start": 10,
+        "shift_end": 14
+    },
+    {
+        "id": "J006",
+        "title": "Library Assistant",
+        "company": "University Library",
+        "min_age": 18,
+        "skills": ["Microsoft Office"],
+        "distance": 2,
+        "hours": 8,
+        "salary": 10.00,
+        "shift_start": 18,
+        "shift_end": 21
+    },
+    {
+        "id": "J007",
+        "title": "Social Media Assistant",
+        "company": "Digital Studio",
+        "min_age": 18,
+        "skills": ["Social Media", "Communication"],
+        "distance": 6,
+        "hours": 10,
+        "salary": 14.00,
+        "shift_start": 18,
+        "shift_end": 21
+    }
+]
