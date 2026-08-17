@@ -4,11 +4,11 @@ This repository is for the individual assignment in **BCS2143/BIT3203 Artificial
 
 ## Student information
 
-- Student name:
-- Student ID:
-- Programme: BCS / BIT
-- Course code: BCS2143 / BIT3203
-- GitHub username:
+- Student name: FATIN NUR HANNAH BINTI MUHAMMAD ASHRAF
+- Student ID: QIU-202410-007383
+- Programme: BIT
+- Course code: BIT3203
+- GitHub username: fatinashraf-boop
 
 ## Project title
 
