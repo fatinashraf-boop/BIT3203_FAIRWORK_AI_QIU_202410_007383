@@ -13,7 +13,6 @@
 
 **Sensors (what the agent perceives): The agent perceives student information such as age, skills, class timetable, preferred location, maximum working hours and transportation limitations. It also perceives job vacancy information including job requirements, location, salary, working hours, shifts and other available details.**
 
-
 ## Environment properties
 
 - Observable: <!-- (partially) The agent can observe available information about students and job vacancies, but it cannot know all real-world factors, such as whether a job is truly safe, whether the employer is reliable, or unexpected changes in work schedules.-->

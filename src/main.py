@@ -1,13 +1,17 @@
 """
-FairWork AI
-Command-line entry point.
+FairWork AI - Interactive Console Application
 
-The user enters their student profile.
-Job vacancies are loaded from jobs.json.
-UCS and A* are then executed and compared.
+Run from the project root:
+
+    python src/main.py
+
+The program:
+    1. Loads jobs from data/jobs.json.
+    2. Collects a student profile.
+    3. Runs Uniform Cost Search.
+    4. Displays the recommended job.
+    5. Displays search metrics.
 """
-
-from __future__ import annotations
 
 from pathlib import Path
 
@@ -15,9 +19,12 @@ from fairwork_ai import (
     Student,
     load_jobs,
     uniform_cost_search,
-    a_star_search,
 )
 
+
+# ==========================================================
+# DATA PATH
+# ==========================================================
 
 DATA_PATH = (
     Path(__file__).resolve().parent.parent
@@ -27,10 +34,15 @@ DATA_PATH = (
 
 
 # ==========================================================
-# Input Helpers
+# Input Validation
 # ==========================================================
 
-def get_integer(prompt: str, minimum: int = 0) -> int:
+def get_int_input(
+    prompt,
+    minimum=None,
+    maximum=None
+):
+    """Read and validate an integer."""
 
     while True:
 
@@ -38,9 +50,15 @@ def get_integer(prompt: str, minimum: int = 0) -> int:
 
             value = int(input(prompt))
 
-            if value < minimum:
+            if minimum is not None and value < minimum:
                 print(
-                    f"Please enter a value >= {minimum}."
+                    f"Please enter a value of at least {minimum}."
+                )
+                continue
+
+            if maximum is not None and value > maximum:
+                print(
+                    f"Please enter a value of at most {maximum}."
                 )
                 continue
 
@@ -48,10 +66,17 @@ def get_integer(prompt: str, minimum: int = 0) -> int:
 
         except ValueError:
 
-            print("Please enter a valid whole number.")
+            print(
+                "Invalid input. Please enter a whole number."
+            )
 
 
-def get_float(prompt: str, minimum: float = 0) -> float:
+def get_float_input(
+    prompt,
+    minimum=None,
+    maximum=None
+):
+    """Read and validate a decimal number."""
 
     while True:
 
@@ -59,9 +84,15 @@ def get_float(prompt: str, minimum: float = 0) -> float:
 
             value = float(input(prompt))
 
-            if value < minimum:
+            if minimum is not None and value < minimum:
                 print(
-                    f"Please enter a value >= {minimum}."
+                    f"Please enter a value of at least {minimum}."
+                )
+                continue
+
+            if maximum is not None and value > maximum:
+                print(
+                    f"Please enter a value of at most {maximum}."
                 )
                 continue
 
@@ -69,83 +100,90 @@ def get_float(prompt: str, minimum: float = 0) -> float:
 
         except ValueError:
 
-            print("Please enter a valid number.")
+            print(
+                "Invalid input. Please enter a number."
+            )
 
 
-def get_skills() -> list[str]:
+def get_skills():
+    """Read one or more student skills."""
 
     while True:
 
-        skills_input = input(
-            "Enter your skills "
-            "(comma separated): "
+        raw = input(
+            "Skills (separate with commas): "
         ).strip()
 
-        if skills_input:
+        if raw:
 
-            return [
+            skills = [
                 skill.strip()
-                for skill in skills_input.split(",")
+                for skill in raw.split(",")
                 if skill.strip()
             ]
 
-        print("Please enter at least one skill.")
+            if skills:
+                return skills
+
+        print(
+            "Please enter at least one skill."
+        )
 
 
 # ==========================================================
 # Student Input
 # ==========================================================
 
-def input_student() -> Student:
+def get_student_profile():
+    """Collect the student's requirements."""
 
-    print("\n========================================")
-    print("         STUDENT PROFILE INPUT")
-    print("========================================")
+    print()
+    print("=" * 50)
+    print("          STUDENT PROFILE")
+    print("=" * 50)
 
-    age = get_integer(
+    age = get_int_input(
         "Age: ",
-        minimum=15
+        minimum=15,
+        maximum=100
     )
 
     skills = get_skills()
 
-    class_start = get_integer(
-        "Class start hour (0-23): ",
-        minimum=0
+    print()
+    print("Available working time")
+
+    available_start = get_int_input(
+        "Start time (0-23): ",
+        minimum=0,
+        maximum=23
     )
 
-    while class_start > 23:
-
-        print("Hour must be between 0 and 23.")
-
-        class_start = get_integer(
-            "Class start hour (0-23): ",
-            minimum=0
-        )
-
-    class_end = get_integer(
-        "Class end hour (0-23): ",
-        minimum=0
+    available_end = get_int_input(
+        "End time (1-24): ",
+        minimum=1,
+        maximum=24
     )
 
-    while class_end <= class_start or class_end > 23:
+    while available_end <= available_start:
 
         print(
-            "Class end must be later than class start "
-            "and no greater than 23."
+            "End time must be later than start time."
         )
 
-        class_end = get_integer(
-            "Class end hour (0-23): ",
-            minimum=0
+        available_end = get_int_input(
+            "End time (1-24): ",
+            minimum=1,
+            maximum=24
         )
 
-    max_hours = get_integer(
-        "Maximum working hours per week: ",
-        minimum=1
+    max_hours = get_int_input(
+        "Maximum working hours/week: ",
+        minimum=1,
+        maximum=168
     )
 
-    max_distance = get_float(
+    max_distance = get_float_input(
         "Maximum travel distance (km): ",
         minimum=0
     )
@@ -153,224 +191,250 @@ def input_student() -> Student:
     return Student(
         age=age,
         skills=skills,
-        class_start=class_start,
-        class_end=class_end,
+        available_start=available_start,
+        available_end=available_end,
         max_hours=max_hours,
         max_distance=max_distance,
     )
 
 
 # ==========================================================
-# Display
+# Display Student
 # ==========================================================
 
-def display_student(student: Student) -> None:
+def display_student(student):
+    """Display the collected student information."""
 
-    print("\n========================================")
-    print("           STUDENT PROFILE")
-    print("========================================")
+    print()
+    print("=" * 50)
+    print("          STUDENT PROFILE")
+    print("=" * 50)
 
-    print(f"Age              : {student.age}")
+    print(f"Age               : {student.age}")
+
     print(
-        f"Skills           : "
-        f"{', '.join(student.skills)}"
+        "Skills            : "
+        + ", ".join(student.skills)
     )
 
     print(
-        f"Class time       : "
-        f"{student.class_start}:00 - "
-        f"{student.class_end}:00"
+        f"Available Time    : "
+        f"{student.available_start}:00 - "
+        f"{student.available_end}:00"
     )
 
     print(
-        f"Maximum hours    : "
+        f"Maximum Hours     : "
         f"{student.max_hours} hrs/week"
     )
 
     print(
-        f"Maximum distance : "
-        f"{student.max_distance} km"
+        f"Maximum Distance  : "
+        f"{student.max_distance:g} km"
     )
 
+    print("=" * 50)
 
-def display_result(
-    name: str,
-    result
-) -> None:
 
-    print(f"\n{name}")
+# ==========================================================
+# Display Search Result
+# ==========================================================
 
-    print("-" * 45)
+def display_result(result):
+    """Display the FairWork AI recommendation."""
 
-    if result.found:
+    print()
+    print("=" * 50)
+    print("             FAIRWORK AI")
+    print("=" * 50)
 
-        job = result.job
+    if not result.found:
 
-        print(f"Job              : {job.title}")
-        print(f"Company          : {job.company}")
-        print(f"Salary           : RM {job.salary:.2f}/hour")
-        print(f"Distance         : {job.distance} km")
-        print(f"Working hours    : {job.hours} hrs/week")
+        print()
+        print("No suitable job was found.")
+        print()
         print(
-            f"Shift            : "
-            f"{job.shift_start}:00 - "
-            f"{job.shift_end}:00"
+            "The AI could not find a vacancy satisfying "
+            "the student's constraints."
         )
 
-        print(f"Search cost      : {result.cost:.2f}")
+        print()
+        print(f"Jobs expanded  : {result.jobs_expanded}")
+        print(f"Search cost    : {result.cost}")
 
         print(
-            f"Jobs expanded    : "
-            f"{result.jobs_expanded}"
-        )
-
-        print(
-            f"Execution time   : "
+            f"Execution time : "
             f"{result.execution_time_s * 1000:.3f} ms"
         )
 
-    else:
+        print("=" * 50)
 
-        print("No suitable job found.")
+        return
 
-        print(
-            f"Jobs expanded    : "
-            f"{result.jobs_expanded}"
-        )
+    job = result.job
+
+    print()
+    print("RECOMMENDED JOB")
+    print("-" * 50)
+
+    print(f"Job ID          : {job.id}")
+    print(f"Job             : {job.title}")
+    print(f"Company         : {job.company}")
+    print(f"Minimum Age     : {job.min_age}")
+    print(
+        f"Required Skills : "
+        f"{', '.join(job.skills)}"
+    )
+    print(
+        f"Distance        : "
+        f"{job.distance:g} km"
+    )
+    print(
+        f"Working Hours   : "
+        f"{job.hours} hrs/week"
+    )
+    print(
+        f"Salary          : "
+        f"RM {job.salary:.2f}/hour"
+    )
+    print(
+        f"Shift           : "
+        f"{job.shift_start}:00 - "
+        f"{job.shift_end}:00"
+    )
+
+    print()
+    print("AI SEARCH METRICS")
+    print("-" * 50)
+
+    print(
+        f"Search Cost     : "
+        f"{result.cost:.4f}"
+    )
+
+    print(
+        f"Jobs Expanded   : "
+        f"{result.jobs_expanded}"
+    )
+
+    print(
+        f"Execution Time  : "
+        f"{result.execution_time_s * 1000:.3f} ms"
+    )
+
+    print()
+    print("AI Method       : Uniform Cost Search")
+    print(
+        "Decision        : Lowest-cost valid job"
+    )
+
+    print("=" * 50)
 
 
 # ==========================================================
 # Main
 # ==========================================================
 
-def main() -> None:
+def main():
+    """Run the FairWork AI prototype."""
 
-    print("=" * 60)
-    print("                 FAIRWORK AI")
-    print("=" * 60)
+    print()
+    print("=" * 50)
+    print("              FAIRWORK AI")
+    print("      Intelligent Student Job Matching")
+    print("=" * 50)
 
-    print(
-        "\nAI-powered part-time job recommendation prototype"
-    )
+    print()
+    print("AI Method  : Uniform Cost Search")
+    print("Data       : data/jobs.json")
 
-    print(
-        "\nLoading simulated job vacancy data..."
-    )
+    # ------------------------------------------------------
+    # Load CSV
+    # ------------------------------------------------------
 
     try:
 
         jobs = load_jobs(DATA_PATH)
 
-    except FileNotFoundError:
+    except FileNotFoundError as error:
 
-        print(
-            "\nERROR: jobs.json was not found."
-        )
-
-        print(
-            f"Expected location:\n{DATA_PATH}"
-        )
+        print()
+        print("ERROR: Job data file not found.")
+        print(error)
 
         return
 
-    except (KeyError, ValueError) as error:
+    except ValueError as error:
 
-        print(
-            f"\nERROR: Invalid jobs.json data: {error}"
-        )
+        print()
+        print("ERROR: Invalid job data.")
+        print(error)
 
         return
 
+    except Exception as error:
+
+        print()
+        print("ERROR: Could not load job data.")
+        print(error)
+
+        return
+
+    if not jobs:
+
+        print()
+        print("No jobs are available.")
+
+        return
+
+    print()
     print(
         f"{len(jobs)} jobs loaded successfully."
     )
 
-    student = input_student()
+    # ------------------------------------------------------
+    # Student input
+    # ------------------------------------------------------
+
+    student = get_student_profile()
 
     display_student(student)
 
-    print("\nSearching for suitable jobs...")
-
     # ------------------------------------------------------
-    # Baseline
+    # Run AI
     # ------------------------------------------------------
 
-    baseline = uniform_cost_search(
-        student,
-        jobs
+    print()
+    print("Running FairWork AI...")
+    print(
+        "Applying constraints and Uniform Cost Search..."
     )
 
-    # ------------------------------------------------------
-    # Improved AI method
-    # ------------------------------------------------------
+    try:
 
-    improved = a_star_search(
-        student,
-        jobs
-    )
+        result = uniform_cost_search(
+            student,
+            jobs
+        )
 
-    print("\n")
-    print("=" * 60)
-    print("                 SEARCH RESULTS")
-    print("=" * 60)
+    except Exception as error:
 
-    display_result(
-        "Baseline: Uniform Cost Search (UCS)",
-        baseline
-    )
+        print()
+        print("ERROR: AI search failed.")
+        print(error)
 
-    display_result(
-        "Improved: A* Search",
-        improved
-    )
+        return
 
     # ------------------------------------------------------
-    # Comparison
+    # Output
     # ------------------------------------------------------
 
-    print("\n========================================")
-    print("              COMPARISON")
-    print("========================================")
+    display_result(result)
 
-    if baseline.found and improved.found:
 
-        print(
-            f"UCS cost        : "
-            f"{baseline.cost:.2f}"
-        )
-
-        print(
-            f"A* cost         : "
-            f"{improved.cost:.2f}"
-        )
-
-        print(
-            f"UCS expansions  : "
-            f"{baseline.jobs_expanded}"
-        )
-
-        print(
-            f"A* expansions   : "
-            f"{improved.jobs_expanded}"
-        )
-
-        print(
-            f"UCS time        : "
-            f"{baseline.execution_time_s * 1000:.3f} ms"
-        )
-
-        print(
-            f"A* time         : "
-            f"{improved.execution_time_s * 1000:.3f} ms"
-        )
-
-    else:
-
-        print(
-            "No suitable job was found under "
-            "the student's constraints."
-        )
-
+# ==========================================================
+# Entry Point
+# ==========================================================
 
 if __name__ == "__main__":
     main()
