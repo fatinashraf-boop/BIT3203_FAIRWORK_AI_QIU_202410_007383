@@ -10,11 +10,9 @@ This repository is for the individual assignment in **BCS2143/BIT3203 Artificial
 - Course code: BIT3203
 - GitHub username: fatinashraf-boop
 
-# FairWork AI
-
 ## Project title
 
-**FairWork AI: A* Student Job Matching System**
+**FairWork AI: Intelligent Student Part-Time Job Recommendation System**
 
 ## Problem summary
 
