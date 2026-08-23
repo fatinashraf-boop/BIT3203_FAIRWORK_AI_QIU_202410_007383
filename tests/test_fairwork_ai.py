@@ -13,31 +13,32 @@ The tests evaluate:
 
 import sys
 from pathlib import Path
+import pytest
 
-# ------------------------------------------------------------
-# Allow Python to find the src/ directory
-# ------------------------------------------------------------
+# ==========================================================
+# Allow tests/ to import modules from src/
+# ==========================================================
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-SRC_DIR = ROOT_DIR / "src"
+SRC_PATH = Path(__file__).resolve().parent.parent / "src"
+sys.path.insert(0, str(SRC_PATH))
 
-sys.path.insert(0, str(SRC_DIR))
-
-from fairwork_ai import (  # noqa: E402
+from fairwork_ai import (
     Student,
     Job,
-    SearchResult,
     load_jobs,
     check_constraints,
-    uniform_cost_search,
+    uniform_cost_search
 )
 
+# ==========================================================
+# Data path
+# ==========================================================
 
-# ------------------------------------------------------------
-# JSON data path
-# ------------------------------------------------------------
-
-DATA_PATH = ROOT_DIR / "data" / "jobs.json"
+DATA_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "data"
+    / "jobs.json"
+)
 
 
 # ============================================================
