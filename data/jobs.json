@@ -4,7 +4,10 @@
         "title": "Cafe Crew",
         "company": "Campus Cafe",
         "min_age": 18,
-        "skills": ["Customer Service", "Communication"],
+        "skills": [
+            "Customer Service",
+            "Communication"
+        ],
         "distance": 2.0,
         "hours": 10,
         "salary": 12.0,
@@ -16,7 +19,10 @@
         "title": "Retail Assistant",
         "company": "Student Mall",
         "min_age": 18,
-        "skills": ["Customer Service", "Sales"],
+        "skills": [
+            "Customer Service",
+            "Sales"
+        ],
         "distance": 4.0,
         "hours": 15,
         "salary": 11.5,
@@ -28,7 +34,10 @@
         "title": "Data Entry Assistant",
         "company": "Digital Services",
         "min_age": 18,
-        "skills": ["Computer Skills", "Data Entry"],
+        "skills": [
+            "Computer Skills",
+            "Data Entry"
+        ],
         "distance": 6.0,
         "hours": 12,
         "salary": 13.0,
@@ -40,7 +49,10 @@
         "title": "Event Crew",
         "company": "Campus Events",
         "min_age": 18,
-        "skills": ["Communication", "Teamwork"],
+        "skills": [
+            "Communication",
+            "Teamwork"
+        ],
         "distance": 3.0,
         "hours": 8,
         "salary": 12.5,
@@ -52,7 +64,10 @@
         "title": "Library Assistant",
         "company": "University Library",
         "min_age": 18,
-        "skills": ["Computer Skills", "Communication"],
+        "skills": [
+            "Computer Skills",
+            "Communication"
+        ],
         "distance": 1.5,
         "hours": 10,
         "salary": 12.0,
@@ -64,7 +79,9 @@
         "title": "Junior Retail Helper",
         "company": "Local Retail Store",
         "min_age": 16,
-        "skills": ["Customer Service"],
+        "skills": [
+            "Customer Service"
+        ],
         "distance": 8.0,
         "hours": 12,
         "salary": 10.5,
@@ -76,7 +93,10 @@
         "title": "Social Media Assistant",
         "company": "Creative Studio",
         "min_age": 18,
-        "skills": ["Social Media", "Communication"],
+        "skills": [
+            "Social Media",
+            "Communication"
+        ],
         "distance": 5.0,
         "hours": 10,
         "salary": 14.0,
@@ -88,7 +108,10 @@
         "title": "Kitchen Helper",
         "company": "Food Corner",
         "min_age": 18,
-        "skills": ["Teamwork", "Customer Service"],
+        "skills": [
+            "Teamwork",
+            "Customer Service"
+        ],
         "distance": 7.0,
         "hours": 20,
         "salary": 11.0,
@@ -100,7 +123,10 @@
         "title": "Computer Lab Assistant",
         "company": "University IT Lab",
         "min_age": 18,
-        "skills": ["Computer Skills", "Technical Support"],
+        "skills": [
+            "Computer Skills",
+            "Technical Support"
+        ],
         "distance": 2.5,
         "hours": 10,
         "salary": 13.5,
@@ -112,7 +138,10 @@
         "title": "Weekend Promoter",
         "company": "Campus Promotions",
         "min_age": 18,
-        "skills": ["Communication", "Sales"],
+        "skills": [
+            "Communication",
+            "Sales"
+        ],
         "distance": 9.0,
         "hours": 6,
         "salary": 12.0,
@@ -124,31 +153,40 @@
         "title": "Bookstore Assistant",
         "company": "Campus Bookstore",
         "min_age": 18,
-        "skills": ["Customer Service", "Communication"],
-        "distance": 2.2,
+        "skills": [
+            "Customer Service",
+            "Communication"
+        ],
+        "distance": 2.8,
         "hours": 12,
-        "salary": 12.0,
+        "salary": 12.5,
         "shift_start": 16,
-        "shift_end": 20
+        "shift_end": 21
     },
     {
         "id": "J012",
-        "title": "IT Support Trainee",
+        "title": "IT Support Intern",
         "company": "Tech Solutions",
         "min_age": 18,
-        "skills": ["Computer Skills", "Technical Support"],
-        "distance": 5.5,
+        "skills": [
+            "Computer Skills",
+            "Technical Support"
+        ],
+        "distance": 4.5,
         "hours": 15,
-        "salary": 14.0,
+        "salary": 15.0,
         "shift_start": 17,
         "shift_end": 21
     },
     {
         "id": "J013",
-        "title": "Reception Assistant",
-        "company": "Student Services",
+        "title": "Administrative Assistant",
+        "company": "Campus Administration",
         "min_age": 18,
-        "skills": ["Communication", "Customer Service"],
+        "skills": [
+            "Communication",
+            "Computer Skills"
+        ],
         "distance": 1.8,
         "hours": 10,
         "salary": 13.0,
@@ -157,205 +195,106 @@
     },
     {
         "id": "J014",
-        "title": "Office Assistant",
-        "company": "Campus Administration",
+        "title": "Food Service Assistant",
+        "company": "Student Dining Hall",
         "min_age": 18,
-        "skills": ["Computer Skills", "Communication"],
-        "distance": 2.0,
-        "hours": 12,
-        "salary": 13.0,
-        "shift_start": 15,
-        "shift_end": 20
+        "skills": [
+            "Customer Service",
+            "Teamwork"
+        ],
+        "distance": 3.5,
+        "hours": 15,
+        "salary": 11.5,
+        "shift_start": 17,
+        "shift_end": 22
     },
     {
         "id": "J015",
-        "title": "Food Delivery Assistant",
-        "company": "Campus Food Hub",
+        "title": "Social Media Coordinator",
+        "company": "Student Media Centre",
         "min_age": 18,
-        "skills": ["Customer Service", "Time Management"],
-        "distance": 6.5,
-        "hours": 10,
-        "salary": 12.5,
+        "skills": [
+            "Social Media",
+            "Communication"
+        ],
+        "distance": 2.5,
+        "hours": 8,
+        "salary": 14.5,
         "shift_start": 18,
-        "shift_end": 22
+        "shift_end": 21
     },
     {
         "id": "J016",
-        "title": "Marketing Assistant",
-        "company": "Bright Marketing",
+        "title": "Computer Lab Helper",
+        "company": "Campus Computing Centre",
         "min_age": 18,
-        "skills": ["Communication", "Social Media"],
-        "distance": 4.5,
-        "hours": 15,
-        "salary": 14.5,
-        "shift_start": 17,
-        "shift_end": 21
+        "skills": [
+            "Computer Skills",
+            "Technical Support"
+        ],
+        "distance": 1.2,
+        "hours": 8,
+        "salary": 13.5,
+        "shift_start": 16,
+        "shift_end": 20
     },
     {
         "id": "J017",
-        "title": "Graphic Design Assistant",
-        "company": "Creative Hub",
+        "title": "Sales Assistant",
+        "company": "Campus Fashion Store",
         "min_age": 18,
-        "skills": ["Computer Skills", "Graphic Design"],
-        "distance": 5.0,
+        "skills": [
+            "Sales",
+            "Customer Service"
+        ],
+        "distance": 5.5,
         "hours": 12,
-        "salary": 15.0,
-        "shift_start": 16,
-        "shift_end": 20
+        "salary": 12.0,
+        "shift_start": 18,
+        "shift_end": 22
     },
     {
         "id": "J018",
-        "title": "Student Ambassador",
-        "company": "University Student Affairs",
-        "min_age": 18,
-        "skills": ["Communication", "Teamwork"],
-        "distance": 1.0,
-        "hours": 8,
-        "salary": 13.0,
-        "shift_start": 18,
-        "shift_end": 22
-    },
-    {
-        "id": "J019",
         "title": "Research Assistant",
         "company": "University Research Centre",
         "min_age": 20,
-        "skills": ["Computer Skills", "Data Entry"],
+        "skills": [
+            "Computer Skills",
+            "Data Entry"
+        ],
         "distance": 3.0,
-        "hours": 15,
-        "salary": 15.0,
-        "shift_start": 16,
-        "shift_end": 20
-    },
-    {
-        "id": "J020",
-        "title": "Online Customer Support",
-        "company": "Digital Support Co.",
-        "min_age": 18,
-        "skills": ["Customer Service", "Communication"],
-        "distance": 1.0,
         "hours": 10,
-        "salary": 14.0,
-        "shift_start": 18,
-        "shift_end": 22
-    },
-    {
-        "id": "J021",
-        "title": "Warehouse Assistant",
-        "company": "Campus Logistics",
-        "min_age": 18,
-        "skills": ["Teamwork", "Time Management"],
-        "distance": 8.5,
-        "hours": 20,
-        "salary": 12.0,
-        "shift_start": 16,
-        "shift_end": 21
-    },
-    {
-        "id": "J022",
-        "title": "Sports Centre Assistant",
-        "company": "University Sports Centre",
-        "min_age": 18,
-        "skills": ["Customer Service", "Teamwork"],
-        "distance": 2.5,
-        "hours": 10,
-        "salary": 12.5,
-        "shift_start": 17,
-        "shift_end": 21
-    },
-    {
-        "id": "J023",
-        "title": "Photography Assistant",
-        "company": "Campus Media",
-        "min_age": 18,
-        "skills": ["Communication", "Photography"],
-        "distance": 4.0,
-        "hours": 8,
-        "salary": 13.5,
-        "shift_start": 18,
-        "shift_end": 22
-    },
-    {
-        "id": "J024",
-        "title": "Content Assistant",
-        "company": "Student Media Centre",
-        "min_age": 18,
-        "skills": ["Writing", "Social Media"],
-        "distance": 2.0,
-        "hours": 10,
-        "salary": 14.0,
-        "shift_start": 17,
-        "shift_end": 21
-    },
-    {
-        "id": "J025",
-        "title": "Accounting Assistant",
-        "company": "Campus Finance Office",
-        "min_age": 19,
-        "skills": ["Computer Skills", "Data Entry"],
-        "distance": 2.5,
-        "hours": 12,
-        "salary": 14.5,
+        "salary": 16.0,
         "shift_start": 15,
         "shift_end": 19
     },
     {
-        "id": "J026",
-        "title": "Customer Service Representative",
-        "company": "Student Help Centre",
+        "id": "J019",
+        "title": "Event Registration Assistant",
+        "company": "University Events Office",
         "min_age": 18,
-        "skills": ["Customer Service", "Communication"],
-        "distance": 3.5,
-        "hours": 15,
-        "salary": 13.5,
-        "shift_start": 17,
-        "shift_end": 22
-    },
-    {
-        "id": "J027",
-        "title": "Tour Guide Assistant",
-        "company": "Campus Visitor Centre",
-        "min_age": 18,
-        "skills": ["Communication", "Teamwork"],
-        "distance": 1.5,
-        "hours": 8,
+        "skills": [
+            "Communication",
+            "Customer Service"
+        ],
+        "distance": 2.2,
+        "hours": 6,
         "salary": 13.0,
         "shift_start": 18,
         "shift_end": 21
     },
     {
-        "id": "J028",
-        "title": "Web Assistant",
-        "company": "Digital Campus",
+        "id": "J020",
+        "title": "Online Customer Support Assistant",
+        "company": "Digital Support Hub",
         "min_age": 18,
-        "skills": ["Computer Skills", "Web Development"],
-        "distance": 4.0,
-        "hours": 15,
-        "salary": 15.0,
-        "shift_start": 16,
-        "shift_end": 21
-    },
-    {
-        "id": "J029",
-        "title": "Event Registration Assistant",
-        "company": "University Events Office",
-        "min_age": 18,
-        "skills": ["Communication", "Customer Service"],
-        "distance": 2.0,
-        "hours": 6,
-        "salary": 12.5,
-        "shift_start": 18,
-        "shift_end": 21
-    },
-    {
-        "id": "J030",
-        "title": "Social Media Content Creator",
-        "company": "Campus Creative Agency",
-        "min_age": 18,
-        "skills": ["Social Media", "Graphic Design", "Communication"],
-        "distance": 6.0,
-        "hours": 12,
-        "salary": 15.5,
+        "skills": [
+            "Customer Service",
+            "Communication"
+        ],
+        "distance": 1.0,
+        "hours": 10,
+        "salary": 14.0,
         "shift_start": 17,
         "shift_end": 21
     }

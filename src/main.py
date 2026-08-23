@@ -1,24 +1,27 @@
 """
-FairWork AI - Interactive Console Application
+FairWork AI - Interactive A* Application
 
 Run from the project root:
 
     python src/main.py
 
 The program:
-    1. Loads jobs from data/jobs.json.
-    2. Collects a student profile.
-    3. Runs Uniform Cost Search.
-    4. Displays the recommended job.
-    5. Displays search metrics.
+
+1. Loads jobs from data/jobs.json.
+2. Collects a student profile.
+3. Applies hard constraints.
+4. Runs A* search.
+5. Displays the recommended job.
+6. Displays A* search metrics.
 """
+
 
 from pathlib import Path
 
 from fairwork_ai import (
     Student,
     load_jobs,
-    uniform_cost_search,
+    a_star_search,
 )
 
 
@@ -34,7 +37,7 @@ DATA_PATH = (
 
 
 # ==========================================================
-# Input Validation
+# Integer Input
 # ==========================================================
 
 def get_int_input(
@@ -42,23 +45,35 @@ def get_int_input(
     minimum=None,
     maximum=None
 ):
-    """Read and validate an integer."""
+    """
+    Read and validate integer input.
+    """
 
     while True:
 
         try:
 
-            value = int(input(prompt))
+            value = int(
+                input(prompt)
+            )
 
-            if minimum is not None and value < minimum:
+            if (
+                minimum is not None
+                and value < minimum
+            ):
                 print(
-                    f"Please enter a value of at least {minimum}."
+                    f"Please enter a value "
+                    f"of at least {minimum}."
                 )
                 continue
 
-            if maximum is not None and value > maximum:
+            if (
+                maximum is not None
+                and value > maximum
+            ):
                 print(
-                    f"Please enter a value of at most {maximum}."
+                    f"Please enter a value "
+                    f"of at most {maximum}."
                 )
                 continue
 
@@ -67,32 +82,49 @@ def get_int_input(
         except ValueError:
 
             print(
-                "Invalid input. Please enter a whole number."
+                "Invalid input. "
+                "Please enter a whole number."
             )
 
+
+# ==========================================================
+# Float Input
+# ==========================================================
 
 def get_float_input(
     prompt,
     minimum=None,
     maximum=None
 ):
-    """Read and validate a decimal number."""
+    """
+    Read and validate decimal input.
+    """
 
     while True:
 
         try:
 
-            value = float(input(prompt))
+            value = float(
+                input(prompt)
+            )
 
-            if minimum is not None and value < minimum:
+            if (
+                minimum is not None
+                and value < minimum
+            ):
                 print(
-                    f"Please enter a value of at least {minimum}."
+                    f"Please enter a value "
+                    f"of at least {minimum}."
                 )
                 continue
 
-            if maximum is not None and value > maximum:
+            if (
+                maximum is not None
+                and value > maximum
+            ):
                 print(
-                    f"Please enter a value of at most {maximum}."
+                    f"Please enter a value "
+                    f"of at most {maximum}."
                 )
                 continue
 
@@ -101,12 +133,19 @@ def get_float_input(
         except ValueError:
 
             print(
-                "Invalid input. Please enter a number."
+                "Invalid input. "
+                "Please enter a number."
             )
 
 
+# ==========================================================
+# Skills
+# ==========================================================
+
 def get_skills():
-    """Read one or more student skills."""
+    """
+    Read one or more student skills.
+    """
 
     while True:
 
@@ -131,16 +170,18 @@ def get_skills():
 
 
 # ==========================================================
-# Student Input
+# Student Profile
 # ==========================================================
 
 def get_student_profile():
-    """Collect the student's requirements."""
+    """
+    Collect student requirements.
+    """
 
     print()
-    print("=" * 50)
-    print("          STUDENT PROFILE")
-    print("=" * 50)
+    print("=" * 60)
+    print("                 STUDENT PROFILE")
+    print("=" * 60)
 
     age = get_int_input(
         "Age: ",
@@ -165,10 +206,14 @@ def get_student_profile():
         maximum=24
     )
 
-    while available_end <= available_start:
+    while (
+        available_end
+        <= available_start
+    ):
 
         print(
-            "End time must be later than start time."
+            "End time must be later "
+            "than start time."
         )
 
         available_end = get_int_input(
@@ -203,100 +248,140 @@ def get_student_profile():
 # ==========================================================
 
 def display_student(student):
-    """Display the collected student information."""
+    """
+    Display student profile.
+    """
 
     print()
-    print("=" * 50)
-    print("          STUDENT PROFILE")
-    print("=" * 50)
-
-    print(f"Age               : {student.age}")
+    print("=" * 60)
+    print("                 STUDENT PROFILE")
+    print("=" * 60)
 
     print(
-        "Skills            : "
+        f"Age              : {student.age}"
+    )
+
+    print(
+        "Skills           : "
         + ", ".join(student.skills)
     )
 
     print(
-        f"Available Time    : "
+        f"Available Time   : "
         f"{student.available_start}:00 - "
         f"{student.available_end}:00"
     )
 
     print(
-        f"Maximum Hours     : "
+        f"Maximum Hours    : "
         f"{student.max_hours} hrs/week"
     )
 
     print(
-        f"Maximum Distance  : "
+        f"Maximum Distance : "
         f"{student.max_distance:g} km"
     )
 
-    print("=" * 50)
+    print("=" * 60)
 
 
 # ==========================================================
-# Display Search Result
+# Display Result
 # ==========================================================
 
 def display_result(result):
-    """Display the FairWork AI recommendation."""
+    """
+    Display A* recommendation and metrics.
+    """
 
     print()
-    print("=" * 50)
-    print("             FAIRWORK AI")
-    print("=" * 50)
+    print("=" * 60)
+    print("                    FAIRWORK AI")
+    print("=" * 60)
 
     if not result.found:
 
         print()
-        print("No suitable job was found.")
-        print()
         print(
-            "The AI could not find a vacancy satisfying "
-            "the student's constraints."
+            "NO SUITABLE JOB WAS FOUND."
         )
 
         print()
-        print(f"Jobs expanded  : {result.jobs_expanded}")
-        print(f"Search cost    : {result.cost}")
+        print(
+            "The A* search could not find a "
+            "vacancy satisfying all hard constraints."
+        )
+
+        print()
+        print("A* SEARCH METRICS")
+        print("-" * 60)
 
         print(
-            f"Execution time : "
+            f"Jobs Generated  : "
+            f"{result.jobs_generated}"
+        )
+
+        print(
+            f"Jobs Expanded   : "
+            f"{result.jobs_expanded}"
+        )
+
+        print(
+            f"Search Cost     : "
+            f"{result.cost}"
+        )
+
+        print(
+            f"Execution Time : "
             f"{result.execution_time_s * 1000:.3f} ms"
         )
 
-        print("=" * 50)
+        print("=" * 60)
 
         return
 
     job = result.job
 
     print()
-    print("RECOMMENDED JOB")
-    print("-" * 50)
+    print("                RECOMMENDED JOB")
+    print("-" * 60)
 
-    print(f"Job ID          : {job.id}")
-    print(f"Job             : {job.title}")
-    print(f"Company         : {job.company}")
-    print(f"Minimum Age     : {job.min_age}")
+    print(
+        f"Job ID          : {job.id}"
+    )
+
+    print(
+        f"Job             : {job.title}"
+    )
+
+    print(
+        f"Company         : {job.company}"
+    )
+
+    print(
+        f"Minimum Age     : {job.min_age}"
+    )
+
     print(
         f"Required Skills : "
         f"{', '.join(job.skills)}"
     )
+
     print(
         f"Distance        : "
         f"{job.distance:g} km"
     )
+
     print(
         f"Working Hours   : "
         f"{job.hours} hrs/week"
     )
+
     print(
         f"Salary          : "
         f"RM {job.salary:.2f}/hour"
     )
+
     print(
         f"Shift           : "
         f"{job.shift_start}:00 - "
@@ -304,12 +389,27 @@ def display_result(result):
     )
 
     print()
-    print("AI SEARCH METRICS")
-    print("-" * 50)
+    print("                A* SEARCH METRICS")
+    print("-" * 60)
 
     print(
-        f"Search Cost     : "
+        f"g(n) Cost       : "
+        f"{result.g_cost:.4f}"
+    )
+
+    print(
+        f"h(n) Heuristic  : "
+        f"{result.h_cost:.4f}"
+    )
+
+    print(
+        f"f(n) = g+h      : "
         f"{result.cost:.4f}"
+    )
+
+    print(
+        f"Jobs Generated  : "
+        f"{result.jobs_generated}"
     )
 
     print(
@@ -323,12 +423,12 @@ def display_result(result):
     )
 
     print()
-    print("AI Method       : Uniform Cost Search")
+    print("AI METHOD       : A* SEARCH")
     print(
-        "Decision        : Lowest-cost valid job"
+        "DECISION        : LOWEST f(n) VALID JOB"
     )
 
-    print("=" * 50)
+    print("=" * 60)
 
 
 # ==========================================================
@@ -336,30 +436,37 @@ def display_result(result):
 # ==========================================================
 
 def main():
-    """Run the FairWork AI prototype."""
+    """
+    Run FairWork AI.
+    """
 
     print()
-    print("=" * 50)
-    print("              FAIRWORK AI")
-    print("      Intelligent Student Job Matching")
-    print("=" * 50)
+    print("=" * 60)
+    print("                    FAIRWORK AI")
+    print("       Intelligent Student Job Matching")
+    print("=" * 60)
 
     print()
-    print("AI Method  : Uniform Cost Search")
-    print("Data       : data/jobs.json")
+    print("AI Method : A* Search")
+    print("Data      : data/jobs.json")
 
     # ------------------------------------------------------
-    # Load CSV
+    # Load jobs
     # ------------------------------------------------------
 
     try:
 
-        jobs = load_jobs(DATA_PATH)
+        jobs = load_jobs(
+            DATA_PATH
+        )
 
     except FileNotFoundError as error:
 
         print()
-        print("ERROR: Job data file not found.")
+        print(
+            "ERROR: Job data file not found."
+        )
+
         print(error)
 
         return
@@ -367,7 +474,10 @@ def main():
     except ValueError as error:
 
         print()
-        print("ERROR: Invalid job data.")
+        print(
+            "ERROR: Invalid job data."
+        )
+
         print(error)
 
         return
@@ -375,7 +485,10 @@ def main():
     except Exception as error:
 
         print()
-        print("ERROR: Could not load job data.")
+        print(
+            "ERROR: Could not load job data."
+        )
+
         print(error)
 
         return
@@ -383,7 +496,9 @@ def main():
     if not jobs:
 
         print()
-        print("No jobs are available.")
+        print(
+            "No jobs are available."
+        )
 
         return
 
@@ -393,26 +508,35 @@ def main():
     )
 
     # ------------------------------------------------------
-    # Student input
+    # Student
     # ------------------------------------------------------
 
     student = get_student_profile()
 
-    display_student(student)
+    display_student(
+        student
+    )
 
     # ------------------------------------------------------
-    # Run AI
+    # A* Search
     # ------------------------------------------------------
 
     print()
-    print("Running FairWork AI...")
     print(
-        "Applying constraints and Uniform Cost Search..."
+        "Running FairWork AI..."
+    )
+
+    print(
+        "Applying hard constraints..."
+    )
+
+    print(
+        "Running A* search..."
     )
 
     try:
 
-        result = uniform_cost_search(
+        result = a_star_search(
             student,
             jobs
         )
@@ -420,16 +544,21 @@ def main():
     except Exception as error:
 
         print()
-        print("ERROR: AI search failed.")
+        print(
+            "ERROR: A* search failed."
+        )
+
         print(error)
 
         return
 
     # ------------------------------------------------------
-    # Output
+    # Result
     # ------------------------------------------------------
 
-    display_result(result)
+    display_result(
+        result
+    )
 
 
 # ==========================================================

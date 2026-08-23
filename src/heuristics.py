@@ -1,32 +1,39 @@
 """
-FairWork AI - Heuristic / Suitability Functions
+FairWork AI - A* Heuristic and Cost Functions
 
-These functions estimate how suitable a job is for a student.
+A* evaluation:
 
-The value returned is a COST:
+    f(n) = g(n) + h(n)
 
-    Lower cost = better job
-    Higher cost = worse job
+For FairWork AI:
 
-This module is separate from the search algorithm so that the
-cost calculation can be improved without changing the UCS
-implementation.
+    g(n) = skill mismatch cost + distance cost
+
+    h(n) = working-hours cost + salary cost
+
+    f(n) = total suitability cost
+
+Lower cost = better job recommendation.
+
+Hard constraints such as age, availability,
+maximum hours and maximum distance are handled
+before a job enters the A* search.
 """
 
 
 # ==========================================================
-# Skill Match
+# Skill Mismatch Cost
 # ==========================================================
 
-def skill_mismatch_cost(student, job) -> float:
+def skill_mismatch_cost(student, job):
     """
-    Calculate a cost based on skill matching.
+    Calculate the skill mismatch cost.
 
-    A matching skill produces a low cost.
-    No matching skill produces a high cost.
+    A higher skill match produces a lower cost.
 
-    Normally, jobs without matching skills are already rejected
-    by check_constraints().
+    Cost range:
+        0 = complete skill match
+        10 = no matching skill
     """
 
     student_skills = {
@@ -58,11 +65,14 @@ def skill_mismatch_cost(student, job) -> float:
 # Distance Cost
 # ==========================================================
 
-def distance_cost(student, job) -> float:
+def distance_cost(student, job):
     """
-    Penalise jobs that are farther away.
+    Calculate travel distance cost.
 
     A closer job receives a lower cost.
+
+    The student's maximum acceptable distance
+    is used as the reference value.
     """
 
     if student.max_distance <= 0:
@@ -77,12 +87,12 @@ def distance_cost(student, job) -> float:
 # Working Hours Cost
 # ==========================================================
 
-def working_hours_cost(student, job) -> float:
+def working_hours_cost(student, job):
     """
-    Estimate how suitable the number of working hours is.
+    Calculate working-hours cost.
 
-    Jobs requiring fewer hours than the student's maximum are
-    generally more flexible.
+    Jobs requiring fewer hours receive a lower cost
+    because they provide greater flexibility for students.
     """
 
     if student.max_hours <= 0:
@@ -97,13 +107,16 @@ def working_hours_cost(student, job) -> float:
 # Salary Cost
 # ==========================================================
 
-def salary_cost(job) -> float:
+def salary_cost(job):
     """
-    Convert salary into a small cost.
+    Convert salary into a preference cost.
 
-    Higher salary = slightly lower cost.
+    Higher salary = lower cost.
 
-    This prevents salary from dominating the other factors.
+    RM20/hour is used as the reference salary.
+
+    Salary is deliberately given a lower weight so that
+    salary does not dominate student-job suitability.
     """
 
     if job.salary <= 0:
@@ -112,8 +125,8 @@ def salary_cost(job) -> float:
     maximum_reference_salary = 20.0
 
     cost = (
-        1.0 -
-        min(job.salary, maximum_reference_salary)
+        1.0
+        - min(job.salary, maximum_reference_salary)
         / maximum_reference_salary
     )
 
@@ -121,24 +134,20 @@ def salary_cost(job) -> float:
 
 
 # ==========================================================
-# Combined Suitability Cost
+# G(N) - Accumulated Cost
 # ==========================================================
 
-def calculate_suitability_cost(student, job) -> float:
+def calculate_g_cost(student, job):
     """
-    Calculate the total suitability cost.
+    Calculate g(n), the cost accumulated so far.
 
-    Lower cost means a better recommendation.
+    g(n) includes:
 
-    Weighted factors:
+        Skill mismatch = 40%
+        Distance       = 30%
 
-        Skill match       = 40%
-        Distance          = 30%
-        Working hours     = 20%
-        Salary            = 10%
-
-    Hard constraints such as age, availability, distance limit
-    and maximum working hours are handled separately.
+    These represent the first part of the suitability
+    evaluation.
     """
 
     skill_cost = skill_mismatch_cost(
@@ -151,6 +160,34 @@ def calculate_suitability_cost(student, job) -> float:
         job
     )
 
+    g_cost = (
+        (skill_cost * 0.40)
+        + (distance * 0.30)
+    )
+
+    return round(g_cost, 4)
+
+
+# ==========================================================
+# H(N) - Heuristic Cost
+# ==========================================================
+
+def calculate_h_cost(student, job):
+    """
+    Calculate h(n), the estimated remaining cost.
+
+    h(n) includes:
+
+        Working hours = 20%
+        Salary        = 10%
+
+    These represent the remaining preference factors.
+
+    For this one-step job-selection graph, the value is
+    the exact remaining preference cost rather than an
+    overestimate. Therefore it is admissible.
+    """
+
     hours = working_hours_cost(
         student,
         job
@@ -160,11 +197,100 @@ def calculate_suitability_cost(student, job) -> float:
         job
     )
 
-    total_cost = (
-        (skill_cost * 0.40)
-        + (distance * 0.30)
-        + (hours * 0.20)
+    h_cost = (
+        (hours * 0.20)
         + (salary * 0.10)
     )
 
-    return round(total_cost, 4)
+    return round(h_cost, 4)
+
+
+# ==========================================================
+# F(N) - A* Evaluation
+# ==========================================================
+
+def calculate_f_cost(student, job):
+    """
+    Calculate the A* evaluation:
+
+        f(n) = g(n) + h(n)
+
+    Lower f(n) indicates a better candidate.
+    """
+
+    g_cost = calculate_g_cost(
+        student,
+        job
+    )
+
+    h_cost = calculate_h_cost(
+        student,
+        job
+    )
+
+    return round(
+        g_cost + h_cost,
+        4
+    )
+
+
+# ==========================================================
+# Complete Suitability Cost
+# ==========================================================
+
+def calculate_suitability_cost(student, job):
+    """
+    Calculate the complete suitability cost.
+
+    This is equivalent to:
+
+        f(n) = g(n) + h(n)
+
+    Weighting:
+
+        Skill mismatch = 40%
+        Distance       = 30%
+        Working hours  = 20%
+        Salary         = 10%
+
+    Lower cost = better recommendation.
+    """
+
+    return calculate_f_cost(
+        student,
+        job
+    )
+
+
+# ==========================================================
+# Heuristic Function
+# ==========================================================
+
+def heuristic(student, job):
+    """
+    A* heuristic function h(n).
+
+    Returns the estimated remaining preference cost.
+    """
+
+    return calculate_h_cost(
+        student,
+        job
+    )
+
+
+# ==========================================================
+# Exported Functions
+# ==========================================================
+
+__all__ = [
+    "skill_mismatch_cost",
+    "distance_cost",
+    "working_hours_cost",
+    "salary_cost",
+    "calculate_g_cost",
+    "calculate_h_cost",
+    "calculate_f_cost",
+    "calculate_suitability_cost",
+    "heuristic",
+]

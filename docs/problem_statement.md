@@ -4,7 +4,7 @@
 
 ## Working project title
 
-<!-- FairWork AI: Part-Time Job Matching for Students -->
+<!-- FairWork AI: Intelligent Student Part-Time Job Recommendation System -->
 
 
 ## Target users
@@ -14,8 +14,7 @@
 
 ## Evidence
 
-<!-- The problem is particularly important because young people can experience difficulties entering the labour market. The International Labour Organization reported that young people continue to face challenges in obtaining decent employment and making a successful transition from education to work (International Labour Organization [ILO], 2024).
-Skills mismatch is another important issue. A job may be available, but the student's skills may not correspond well with the employer's requirements. The ILO highlights skills mismatch as an important labour-market challenge because workers may possess skills that do not correspond to the requirements of available jobs (ILO, 2020). -->
+<!-- The need for FairWork AI is supported by evidence that young people continue to face challenges in accessing suitable employment and matching their skills with available opportunities. The International Labour Organization (ILO, 2024) highlights continuing difficulties in youth employment and the transition from education to work. In Malaysia, employment opportunities for students can also be affected by practical constraints such as working hours, skills, age requirements and travel distance. These challenges demonstrate the need for a system that does more than list vacancies. FairWork AI addresses this gap by filtering unsuitable jobs and prioritising suitable opportunities according to student-specific constraints and preferences. -->
 
 
 ## Urgency and social value

@@ -1,37 +1,37 @@
 """
-FairWork AI - Core Artificial Intelligence Module
+FairWork AI - A* Job Recommendation System
 
-AI method:
-    Uniform Cost Search (UCS)
+FairWork AI recommends suitable part-time jobs for students.
 
-Purpose:
-    Match students with suitable part-time jobs while respecting
-    hard constraints such as age, availability, maximum working
-    hours and maximum travel distance.
+Search method:
+    A* Search
 
-The system:
-    1. Loads job data from CSV.
-    2. Checks hard constraints.
-    3. Calculates a cost for each valid job.
-    4. Uses Uniform Cost Search to select the lowest-cost job.
+Evaluation:
+    f(n) = g(n) + h(n)
 
-SearchResult is used so that the system can report:
-    - selected job
-    - search cost
-    - number of jobs expanded
-    - execution time
+Hard constraints:
+    1. Minimum age
+    2. Maximum distance
+    3. Maximum working hours
+    4. Working availability
+    5. At least one matching skill
 """
+
 
 from __future__ import annotations
 
-import json
 import heapq
+import json
 import time
 
 from dataclasses import dataclass
 from pathlib import Path
 
-from heuristics import calculate_suitability_cost
+from heuristics import (
+    calculate_g_cost,
+    calculate_h_cost,
+    calculate_f_cost,
+)
 
 
 # ==========================================================
@@ -41,7 +41,7 @@ from heuristics import calculate_suitability_cost
 @dataclass
 class Student:
     """
-    Represents a student's profile.
+    Represents a student's profile and requirements.
     """
 
     age: int
@@ -81,45 +81,42 @@ class Job:
 @dataclass
 class SearchResult:
     """
-    Stores the result of the Uniform Cost Search.
+    Stores the result of A* search.
+
+    Metrics:
+        job
+        cost = f(n)
+        g_cost
+        h_cost
+        jobs_expanded
+        jobs_generated
+        execution_time_s
     """
 
     job: Job | None
     cost: float
+    g_cost: float
+    h_cost: float
     jobs_expanded: int
+    jobs_generated: int
     execution_time_s: float
 
     @property
     def found(self) -> bool:
-        """Return True when a suitable job was found."""
+        """
+        Return True if a suitable job was found.
+        """
 
         return self.job is not None
 
 
 # ==========================================================
-# Load Jobs from CSV
+# Load Jobs
 # ==========================================================
 
 def load_jobs(path: str | Path) -> list[Job]:
     """
-    Load simulated job vacancies from a JSON file.
-
-    Expected JSON structure:
-
-    [
-        {
-            "id": "J001",
-            "title": "Cafe Crew",
-            "company": "Campus Cafe",
-            "min_age": 18,
-            "skills": ["Customer Service", "Communication"],
-            "distance": 2.0,
-            "hours": 10,
-            "salary": 12.0,
-            "shift_start": 18,
-            "shift_end": 22
-        }
-    ]
+    Load job vacancies from jobs.json.
     """
 
     path = Path(path)
@@ -129,7 +126,12 @@ def load_jobs(path: str | Path) -> list[Job]:
             f"Job data file was not found: {path}"
         )
 
-    with open(path, "r", encoding="utf-8") as file:
+    with open(
+        path,
+        "r",
+        encoding="utf-8"
+    ) as file:
+
         data = json.load(file)
 
     if not isinstance(data, list):
@@ -152,14 +154,20 @@ def load_jobs(path: str | Path) -> list[Job]:
         "shift_end",
     }
 
-    for index, item in enumerate(data, start=1):
+    for index, item in enumerate(
+        data,
+        start=1
+    ):
 
         if not isinstance(item, dict):
             raise ValueError(
                 f"Job record {index} must be a JSON object."
             )
 
-        missing = required_fields - set(item.keys())
+        missing = (
+            required_fields
+            - set(item.keys())
+        )
 
         if missing:
             raise ValueError(
@@ -167,11 +175,13 @@ def load_jobs(path: str | Path) -> list[Job]:
                 f"{', '.join(sorted(missing))}"
             )
 
-        skills = item["skills"]
-
-        if not isinstance(skills, list):
+        if not isinstance(
+            item["skills"],
+            list
+        ):
             raise ValueError(
-                f"Job record {index}: 'skills' must be a list."
+                f"Job record {index}: "
+                "'skills' must be a list."
             )
 
         job = Job(
@@ -179,7 +189,10 @@ def load_jobs(path: str | Path) -> list[Job]:
             title=str(item["title"]),
             company=str(item["company"]),
             min_age=int(item["min_age"]),
-            skills=[str(skill).strip() for skill in skills],
+            skills=[
+                str(skill).strip()
+                for skill in item["skills"]
+            ],
             distance=float(item["distance"]),
             hours=int(item["hours"]),
             salary=float(item["salary"]),
@@ -196,41 +209,45 @@ def load_jobs(path: str | Path) -> list[Job]:
 # Constraint Checking
 # ==========================================================
 
-def check_constraints(student: Student, job: Job) -> bool:
+def check_constraints(
+    student: Student,
+    job: Job
+) -> bool:
     """
-    Check whether a job satisfies all hard constraints.
+    Check all hard constraints.
 
-    Hard constraints:
-        1. Minimum age
-        2. Maximum travel distance
-        3. Maximum weekly working hours
-        4. Working shift must fit student's availability
-        5. At least one required skill should match
+    A job is valid only if:
+
+        age is sufficient
+        distance is acceptable
+        hours are acceptable
+        shift fits availability
+        at least one skill matches
     """
 
     # ------------------------------------------------------
-    # Age constraint
+    # Age
     # ------------------------------------------------------
 
     if student.age < job.min_age:
         return False
 
     # ------------------------------------------------------
-    # Distance constraint
+    # Distance
     # ------------------------------------------------------
 
     if job.distance > student.max_distance:
         return False
 
     # ------------------------------------------------------
-    # Maximum working hours
+    # Working Hours
     # ------------------------------------------------------
 
     if job.hours > student.max_hours:
         return False
 
     # ------------------------------------------------------
-    # Availability constraint
+    # Schedule
     # ------------------------------------------------------
 
     if job.shift_start < student.available_start:
@@ -240,7 +257,7 @@ def check_constraints(student: Student, job: Job) -> bool:
         return False
 
     # ------------------------------------------------------
-    # Skill constraint
+    # Skills
     # ------------------------------------------------------
 
     student_skills = {
@@ -253,7 +270,9 @@ def check_constraints(student: Student, job: Job) -> bool:
         for skill in job.skills
     }
 
-    if not student_skills.intersection(job_skills):
+    if not student_skills.intersection(
+        job_skills
+    ):
         return False
 
     return True
@@ -263,42 +282,58 @@ def check_constraints(student: Student, job: Job) -> bool:
 # Cost Calculation
 # ==========================================================
 
-def calculate_cost(student: Student, job: Job) -> float:
+def calculate_cost(
+    student: Student,
+    job: Job
+) -> float:
     """
-    Calculate the cost of a valid job.
+    Return complete A* cost f(n).
 
-    Lower cost = better match.
-
-    The cost considers:
-        - skill mismatch
-        - travel distance
-        - working-hour suitability
-        - salary preference
-
-    Hard constraints should already be checked before this
-    function is called.
+    Invalid jobs receive infinity.
     """
 
-    if not check_constraints(student, job):
+    if not check_constraints(
+        student,
+        job
+    ):
         return float("inf")
 
-    return calculate_suitability_cost(student, job)
+    return calculate_f_cost(
+        student,
+        job
+    )
 
 
 # ==========================================================
-# Uniform Cost Search
+# A* SEARCH
 # ==========================================================
 
-def uniform_cost_search(
+def a_star_search(
     student: Student,
     jobs: list[Job]
 ) -> SearchResult:
     """
-    Uniform Cost Search for the best suitable job.
+    Perform A* search for the most suitable job.
 
-    Each valid job is treated as a state/action candidate.
-    The priority queue always expands the job with the lowest
-    cumulative cost.
+    A* evaluation:
+
+        f(n) = g(n) + h(n)
+
+    State representation:
+
+        START
+          |
+          +---- Job 1
+          |
+          +---- Job 2
+          |
+          +---- Job 3
+          |
+         ...
+          |
+         GOAL
+
+    Invalid jobs are removed before entering the frontier.
 
     Returns:
         SearchResult
@@ -306,28 +341,61 @@ def uniform_cost_search(
 
     start_time = time.perf_counter()
 
-    frontier: list[tuple[float, int, Job]] = []
+    # ------------------------------------------------------
+    # Priority queue
+    #
+    # Tuple:
+    #
+    # (f_cost, counter, job, g_cost, h_cost)
+    # ------------------------------------------------------
+
+    frontier = []
 
     counter = 0
+
+    jobs_generated = 0
     jobs_expanded = 0
 
     # ------------------------------------------------------
-    # Add valid jobs to the frontier
+    # Generate valid job states
     # ------------------------------------------------------
 
     for job in jobs:
 
-        if not check_constraints(student, job):
+        if not check_constraints(
+            student,
+            job
+        ):
             continue
 
-        cost = calculate_cost(student, job)
+        g_cost = calculate_g_cost(
+            student,
+            job
+        )
+
+        h_cost = calculate_h_cost(
+            student,
+            job
+        )
+
+        f_cost = round(
+            g_cost + h_cost,
+            4
+        )
 
         heapq.heappush(
             frontier,
-            (cost, counter, job)
+            (
+                f_cost,
+                counter,
+                job,
+                g_cost,
+                h_cost,
+            )
         )
 
         counter += 1
+        jobs_generated += 1
 
     # ------------------------------------------------------
     # No valid jobs
@@ -338,38 +406,107 @@ def uniform_cost_search(
         return SearchResult(
             job=None,
             cost=float("inf"),
+            g_cost=float("inf"),
+            h_cost=float("inf"),
             jobs_expanded=0,
+            jobs_generated=0,
             execution_time_s=(
-                time.perf_counter() - start_time
+                time.perf_counter()
+                - start_time
             ),
         )
 
     # ------------------------------------------------------
-    # Uniform Cost Search
+    # A* Search
     # ------------------------------------------------------
 
     while frontier:
 
-        cost, _, job = heapq.heappop(frontier)
+        (
+            f_cost,
+            _,
+            job,
+            g_cost,
+            h_cost,
+        ) = heapq.heappop(
+            frontier
+        )
 
         jobs_expanded += 1
 
+        # --------------------------------------------------
+        # Goal Test
+        #
+        # The first valid job removed from the A*
+        # priority queue has the lowest f(n).
+        # --------------------------------------------------
+
         return SearchResult(
             job=job,
-            cost=cost,
+            cost=f_cost,
+            g_cost=g_cost,
+            h_cost=h_cost,
             jobs_expanded=jobs_expanded,
+            jobs_generated=jobs_generated,
             execution_time_s=(
-                time.perf_counter() - start_time
+                time.perf_counter()
+                - start_time
             ),
         )
 
+    # ------------------------------------------------------
     # Safety fallback
+    # ------------------------------------------------------
 
     return SearchResult(
         job=None,
         cost=float("inf"),
+        g_cost=float("inf"),
+        h_cost=float("inf"),
         jobs_expanded=jobs_expanded,
+        jobs_generated=jobs_generated,
         execution_time_s=(
-            time.perf_counter() - start_time
+            time.perf_counter()
+            - start_time
         ),
+    )
+
+
+# ==========================================================
+# Backward-Compatible Alias
+# ==========================================================
+
+def uniform_cost_search(
+    student: Student,
+    jobs: list[Job]
+) -> SearchResult:
+    """
+    Backward-compatible wrapper.
+
+    The project now uses A*.
+
+    This function is retained so older code does not
+    immediately break, but new code should use:
+
+        a_star_search()
+    """
+
+    return a_star_search(
+        student,
+        jobs
+    )
+
+
+# ==========================================================
+# Module Test
+# ==========================================================
+
+if __name__ == "__main__":
+
+    print(
+        "FairWork AI module loaded successfully."
+    )
+
+    print(
+        "Search method: A*"
     )

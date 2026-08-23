@@ -22,30 +22,130 @@
 - Discrete: <!-- The agent mainly works with discrete data and decisions, such as eligible/not eligible, suitable/unsuitable, recommended/not recommended and different job categories. -->
 
 ## State or variables
-The state consists of the student's profile and the available part-time job vacancies. Important variables include student age, skills, class schedule, preferred location, maximum travel distance, maximum working hours, job requirements, job location and job working hours.
+The state in FairWork AI represents the current job candidate being evaluated for a particular student. The complete problem state is defined by the student's profile, constraints and the available job vacancies.
+
+Important variables include:
+Student variables:
+-Age
+-Skills
+-Available working start time
+-Available working end time
+-Maximum working hours per week
+-Maximum travel distance
+
+Job variables:
+-Job ID and title
+-Minimum age requirement
+-Required skills
+-Distance from the student
+-Working hours
+-Salary
+-Shift start and end time
 
 ## Initial state
-The agent starts with a student's profile and a list of available part-time job vacancies. The student's requirements and constraints are used to evaluate the available jobs.
+The initial state is created when FairWork AI receives the student's profile and the available job dataset.
+
+Student Profile + Available Jobs + Student Constraints
+
+Before A* evaluates the suitability of a job, the system first applies the hard constraints. Jobs that clearly violate essential requirements are removed from consideration.
+
+This prevents the search algorithm from recommending an unsuitable job simply because it has a low calculated cost.
 
 ## Actions or domains
-The agent checks the student's eligibility, compares job requirements with student preferences, filters unsuitable jobs, calculates suitability scores and ranks the remaining jobs.
+The actions describe what FairWork AI can do while searching through the available jobs.
+
+At each step, the system can:
+1.  Select an unexamined job.
+2.  Check the student's age against the job's minimum age.
+3.  Check whether the student's skills match the required skills.
+4.  Check whether the job fits the student's available schedule.
+5.  Check whether the working hours are within the student's limit.
+6.  Check whether the job is within the maximum travel distance.
+7.  Reject the job if a hard constraint is violated.
+8.  Calculate the actual cost g(n) for a valid job.
+9.  Calculate the heuristic h(n).
+10. Calculate the A* evaluation value: f(n) = g(n) + h(n)
+11. Add the candidate to the priority queue.
+12. Expand the candidate with the lowest f(n) value.
 
 ## Transition model or constraints
-The agent removes a job if it violates essential constraints, such as age requirements, class schedule conflicts, maximum working hours or travel distance. Jobs that satisfy these constraints are then evaluated based on skills and preferences.
+The agent removes a job if it violates essential constraints, such as age requirements, class schedule conflicts, maximum working hours or travel distance. Jobs that satisfy these constraints are then evaluated based on skills and preferences. These constraints are treated as mandatory constraints rather than soft preferences.
 
 ## Goal test
-The goal is achieved when the agent identifies and ranks suitable part-time jobs that satisfy the student's essential requirements without conflicting with their studies or exceeding their working limitations.
+The goal of A* is to identify the most suitable valid job for the student.
+
+A candidate satisfies the goal requirements when:
+-The student meets the minimum age.
+-At least one required skill matches.
+-The job fits the student's available schedule.
+-The job does not exceed the student's maximum working hours.
+-The job is within the student's maximum travel distance.
+
+Among the valid candidates, A* selects the candidate with the lowest estimated total cost: 
+f(n) = g(n) + h(n)
+
+Therefore:
+
+Goal = Find the valid job with the lowest A* evaluation cost.
+
+If no job satisfies the hard constraints, the system returns:
+No suitable job found.
 
 ## Path cost
-The path cost represents how unsuitable a job is for the student. Higher costs are assigned to jobs with longer travel distances, lower skill matches, inconvenient working times or excessive working hours. Jobs that violate essential constraints are rejected.
+In FairWork AI, g(n) represents the actual suitability cost calculated for a valid job.
+
+A lower cost means the job is more suitable.
+
+The cost can combine several factors: 
+g(n) = Skill Mismatch Cost + Distance Cost + Working Hours Cost + Salary Preference Cost
+
+In the implemented system, these factors can be weighted according to their importance.
 
 ## Heuristic, where applicable
-The heuristic estimates how suitable a job is for the student based on factors such as skill matching, schedule compatibility, travel distance, working-hour suitability and personal preferences. A higher suitability score indicates a better job match.
+The heuristic h(n) estimates the remaining cost or potential disadvantage of a candidate job.
+
+For FairWork AI, the heuristic can consider:
+Skill mismatch
+Travel distance
+Working-hour suitability
+Salary preference
+Schedule convenience
+
+A simple heuristic can be represented as:
+h(n) = Estimated Skill Cost + Estimated Distance Cost + Estimated Hours Cost + Estimated Salary Cost
+
+A* considers both the current cost and the estimated cost.
+
+This allows the system to make a more informed search decision.
 
 ---
 
 ## Appendix: draft simple reflex agent rules (early sketch, Part D)
 
-- Rule 1 — if: The student's class schedule overlaps with the job’s working hours. then: Filter out the job.
-- Rule 2 — if: The student's age is below the job's minimum age requirement. then: Filter out the job.
-- Rule 3 — if: The student's skills, preferred location and maximum working hours match the job requirement. then: Recommend and rank the job as a suitable opportunity.
+Rule 1 — Schedule
+
+IF the student's available time conflicts with the job's working hours, THEN reject the job.
+
+Rule 2 — Age
+
+IF the student's age is below the job's minimum age, THEN reject the job.
+
+Rule 3 — Working Hours
+
+IF the job's weekly hours exceed the student's maximum working hours, THEN reject the job.
+
+Rule 4 — Distance
+
+IF the job's distance exceeds the student's maximum travel distance, THEN reject the job.
+
+Rule 5 — Skill
+
+IF there is no matching skill between the student and job, THEN reject the job.
+
+Rule 6 — A* Recommendation
+
+IF the job satisfies all hard constraints, THEN calculate g(n), calculate h(n), calculate f(n) = g(n) + h(n), and place the candidate in the A* priority queue.
+
+Rule 7 — Selection
+
+IF multiple valid jobs exist, THEN select the candidate with the lowest f(n) value as the preferred recommendation.
