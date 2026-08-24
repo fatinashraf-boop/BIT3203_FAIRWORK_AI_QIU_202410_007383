@@ -1,13 +1,5 @@
-.venv/
-venv/
+.pytest_cache/
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
-.env
-.env.*
-*.key
-*.pem
+.venv/
 .vscode/
-.DS_Store
-Thumbs.db
-*.zip
