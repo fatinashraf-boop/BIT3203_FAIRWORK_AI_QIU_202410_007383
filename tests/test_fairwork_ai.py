@@ -1,5 +1,5 @@
 """
-Test cases for the FairWork AI prototype.
+Test cases for the FairWork AI A* prototype.
 
 Run from the project root:
 
@@ -9,18 +9,19 @@ Tests:
 1. Suitable job recommendation
 2. Schedule conflict rejection
 3. No suitable job
-4. UCS selects lowest-cost job
+4. A* selects lowest-cost job
 5. Age constraint
 6. Distance constraint
 7. Working-hours constraint
 8. Skill constraint
-9. Search result metrics
+9. A* search result metrics
+10. JSON job data loading
+11. A* expands multiple search stages
+12. A* reaches a goal state
 """
 
 import sys
 from pathlib import Path
-
-import pytest
 
 # ==========================================================
 # Allow tests/ to import modules from src/
@@ -39,8 +40,7 @@ from fairwork_ai import (
     SearchResult,
     load_jobs,
     check_constraints,
-    calculate_cost,
-    uniform_cost_search,
+    a_star_search,
 )
 
 
@@ -58,6 +58,7 @@ DATA_PATH = PROJECT_ROOT / "data" / "jobs.json"
 def test_suitable_job_recommendation():
     """
     Test Case 1:
+
     A student with reasonable requirements should receive
     at least one suitable job recommendation.
     """
@@ -73,7 +74,7 @@ def test_suitable_job_recommendation():
 
     jobs = load_jobs(DATA_PATH)
 
-    result = uniform_cost_search(student, jobs)
+    result = a_star_search(student, jobs)
 
     # A SearchResult object should always be returned.
     assert result is not None
@@ -83,7 +84,10 @@ def test_suitable_job_recommendation():
     assert result.job is not None
 
     # The selected job must satisfy all hard constraints.
-    assert check_constraints(student, result.job) is True
+    assert check_constraints(
+        student,
+        result.job
+    ) is True
 
     # The selected result must have a finite cost.
     assert result.cost < float("inf")
@@ -96,6 +100,7 @@ def test_suitable_job_recommendation():
 def test_schedule_conflict_is_rejected():
     """
     Test Case 2:
+
     A job outside the student's available working period
     must be rejected.
     """
@@ -135,6 +140,7 @@ def test_schedule_conflict_is_rejected():
 def test_no_suitable_job():
     """
     Test Case 3:
+
     A highly restrictive student profile should result in
     no suitable job.
 
@@ -154,7 +160,7 @@ def test_no_suitable_job():
 
     jobs = load_jobs(DATA_PATH)
 
-    result = uniform_cost_search(student, jobs)
+    result = a_star_search(student, jobs)
 
     assert result is not None
     assert isinstance(result, SearchResult)
@@ -170,12 +176,13 @@ def test_no_suitable_job():
 # TEST CASE 4
 # ==========================================================
 
-def test_ucs_selects_lowest_cost_job():
+def test_astar_selects_lowest_cost_job():
     """
     Test Case 4:
     Two jobs satisfy all hard constraints.
 
-    UCS should return the job with the lower suitability cost.
+    A* should select the job with the better overall
+    suitability cost.
     """
 
     student = Student(
@@ -215,40 +222,20 @@ def test_ucs_selects_lowest_cost_job():
 
     jobs = [far_job, nearby_job]
 
-    result = uniform_cost_search(student, jobs)
+    # Both jobs must satisfy the hard constraints.
+    assert check_constraints(student, far_job) is True
+    assert check_constraints(student, nearby_job) is True
+
+    # Run A*.
+    result = a_star_search(student, jobs)
 
     assert result is not None
+    assert isinstance(result, SearchResult)
     assert result.job is not None
 
-    # Both jobs should satisfy the hard constraints.
-    assert check_constraints(
-        student,
-        far_job
-    ) is True
-
-    assert check_constraints(
-        student,
-        nearby_job
-    ) is True
-
-    # Calculate their individual costs.
-    far_cost = calculate_cost(
-        student,
-        far_job
-    )
-
-    nearby_cost = calculate_cost(
-        student,
-        nearby_job
-    )
-
-    # Nearby job should have the lower cost.
-    assert nearby_cost < far_cost
-
-    # UCS should select the lowest-cost job.
-    assert result.job.title == "Nearby Customer Service Job"
-
-    assert result.cost == nearby_cost
+    # The nearby job should be preferred because it has
+    # lower distance and fewer working hours.
+    assert result.job.id == "TEST003"
 
 
 # ==========================================================
@@ -258,6 +245,7 @@ def test_ucs_selects_lowest_cost_job():
 def test_age_constraint():
     """
     Test Case 5:
+
     A student below the minimum age requirement must be
     rejected.
     """
@@ -297,6 +285,7 @@ def test_age_constraint():
 def test_distance_constraint():
     """
     Test Case 6:
+
     A job beyond the student's maximum travel distance
     must be rejected.
     """
@@ -336,6 +325,7 @@ def test_distance_constraint():
 def test_working_hours_constraint():
     """
     Test Case 7:
+
     A job requiring more hours than the student's maximum
     must be rejected.
     """
@@ -375,6 +365,7 @@ def test_working_hours_constraint():
 def test_skill_constraint():
     """
     Test Case 8:
+
     A job with no matching student skills must be rejected.
     """
 
@@ -392,7 +383,10 @@ def test_skill_constraint():
         company="Technology Company",
         title="Technical Support Job",
         min_age=18,
-        skills=["Python", "Technical Support"],
+        skills=[
+            "Python",
+            "Technical Support"
+        ],
         distance=3,
         hours=10,
         salary=13,
@@ -410,10 +404,11 @@ def test_skill_constraint():
 # TEST CASE 9
 # ==========================================================
 
-def test_search_result_metrics():
+def test_astar_search_result_metrics():
     """
     Test Case 9:
-    The UCS result should contain valid search metrics.
+
+    The A* result should contain valid search metrics.
     """
 
     student = Student(
@@ -427,9 +422,15 @@ def test_search_result_metrics():
 
     jobs = load_jobs(DATA_PATH)
 
-    result = uniform_cost_search(student, jobs)
+    result = a_star_search(
+        student,
+        jobs
+    )
 
-    assert isinstance(result, SearchResult)
+    assert isinstance(
+        result,
+        SearchResult
+    )
 
     # Execution time should never be negative.
     assert result.execution_time_s >= 0
@@ -437,12 +438,21 @@ def test_search_result_metrics():
     # Jobs expanded should be zero or greater.
     assert result.jobs_expanded >= 0
 
+    # Nodes generated should be zero or greater.
+    assert result.nodes_generated >= 0
+
     # If a job is found, cost must be finite.
     if result.job is not None:
+
         assert result.cost < float("inf")
+
+        assert result.jobs_expanded > 0
+
+        assert result.nodes_generated > 0
 
     # If no job is found, cost should be infinity.
     else:
+
         assert result.cost == float("inf")
 
 
@@ -453,20 +463,30 @@ def test_search_result_metrics():
 def test_json_job_data_is_loaded():
     """
     Test Case 10:
-    Verify that jobs.json exists and contains valid Job objects.
+
+    Verify that jobs.json exists and contains valid Job
+    objects.
     """
 
     assert DATA_PATH.exists()
 
-    jobs = load_jobs(DATA_PATH)
+    jobs = load_jobs(
+        DATA_PATH
+    )
 
-    assert isinstance(jobs, list)
+    assert isinstance(
+        jobs,
+        list
+    )
 
     assert len(jobs) > 0
 
     for job in jobs:
 
-        assert isinstance(job, Job)
+        assert isinstance(
+            job,
+            Job
+        )
 
         assert job.id
         assert job.title
@@ -477,9 +497,133 @@ def test_json_job_data_is_loaded():
         assert job.hours >= 0
         assert job.salary >= 0
 
-        assert isinstance(job.skills, list)
+        assert isinstance(
+            job.skills,
+            list
+        )
+
         assert len(job.skills) > 0
 
         assert job.shift_start >= 0
         assert job.shift_end <= 24
-        assert job.shift_end > job.shift_start
+
+        assert (
+            job.shift_end >
+            job.shift_start
+        )
+
+
+# ==========================================================
+# TEST CASE 11
+# ==========================================================
+
+def test_astar_expands_multiple_search_stages():
+    """
+    Test Case 11:
+
+    Verify that A* does not immediately treat a valid job
+    as a goal.
+
+    The multi-stage A* implementation should expand:
+
+        Stage 0 -> Skill
+        Stage 1 -> Distance
+        Stage 2 -> Working Hours
+        Stage 3 -> Salary
+        Stage 4 -> Goal
+    """
+
+    student = Student(
+        age=21,
+        skills=["Customer Service"],
+        available_start=15,
+        available_end=22,
+        max_hours=20,
+        max_distance=10,
+    )
+
+    jobs = [
+        Job(
+            id="TEST008",
+            company="Test Cafe",
+            title="Customer Service Job",
+            min_age=18,
+            skills=["Customer Service"],
+            distance=2,
+            hours=10,
+            salary=12,
+            shift_start=15,
+            shift_end=19,
+        )
+    ]
+
+    result = a_star_search(
+        student,
+        jobs
+    )
+
+    assert result is not None
+
+    assert result.job is not None
+
+    # At least five nodes should be expanded:
+    #
+    # Stage 0
+    # Stage 1
+    # Stage 2
+    # Stage 3
+    # Stage 4 / Goal
+    #
+    assert result.jobs_expanded >= 5
+
+    # Multiple nodes should have been generated.
+    assert result.nodes_generated >= 5
+
+
+# ==========================================================
+# TEST CASE 12
+# ==========================================================
+
+def test_astar_reaches_goal_state():
+    """
+    Test Case 12:
+
+    Verify that A* returns a completed candidate after
+    passing through all evaluation stages.
+    """
+
+    student = Student(
+        age=21,
+        skills=["Customer Service"],
+        available_start=15,
+        available_end=22,
+        max_hours=20,
+        max_distance=10,
+    )
+
+    job = Job(
+        id="TEST009",
+        company="Goal Test Cafe",
+        title="Goal State Job",
+        min_age=18,
+        skills=["Customer Service"],
+        distance=2,
+        hours=10,
+        salary=12,
+        shift_start=15,
+        shift_end=19,
+    )
+
+    result = a_star_search(
+        student,
+        [job]
+    )
+
+    assert result.job is not None
+
+    assert result.job.id == "TEST009"
+
+    assert result.cost < float("inf")
+
+    # A* must perform actual search before returning.
+    assert result.jobs_expanded >= 5

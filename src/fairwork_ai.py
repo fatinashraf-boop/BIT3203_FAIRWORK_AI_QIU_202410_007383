@@ -15,8 +15,14 @@ Hard constraints:
     3. Maximum working hours
     4. Working availability
     5. At least one matching skill
-"""
 
+A* stages:
+    Stage 0 - Skill matching
+    Stage 1 - Distance suitability
+    Stage 2 - Working-hour suitability
+    Stage 3 - Salary preference
+    Stage 4 - Goal state
+"""
 
 from __future__ import annotations
 
@@ -28,22 +34,19 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from heuristics import (
-    calculate_g_cost,
-    calculate_h_cost,
-    calculate_f_cost,
+    skill_mismatch_cost,
+    distance_cost,
+    working_hours_cost,
+    salary_cost,
 )
 
 
 # ==========================================================
-# Student
+# STUDENT
 # ==========================================================
 
 @dataclass
 class Student:
-    """
-    Represents a student's profile and requirements.
-    """
-
     age: int
     skills: list[str]
     available_start: int
@@ -53,15 +56,11 @@ class Student:
 
 
 # ==========================================================
-# Job
+# JOB
 # ==========================================================
 
 @dataclass
 class Job:
-    """
-    Represents a part-time job vacancy.
-    """
-
     id: str
     company: str
     title: str
@@ -75,43 +74,65 @@ class Job:
 
 
 # ==========================================================
-# Search Result
+# SEARCH NODE
+# ==========================================================
+
+@dataclass
+class SearchNode:
+    """
+    Represents a candidate job at one stage of the A* search.
+    """
+
+    job: Job
+    stage: int
+    g_cost: float
+    h_cost: float
+
+    @property
+    def f_cost(self) -> float:
+        """
+        A* evaluation function.
+
+        f(n) = g(n) + h(n)
+        """
+        return self.g_cost + self.h_cost
+
+    @property
+    def is_goal(self) -> bool:
+        """
+        Stage 4 represents the goal state.
+        """
+        return self.stage == 4
+
+
+# ==========================================================
+# SEARCH RESULT
 # ==========================================================
 
 @dataclass
 class SearchResult:
-    """
-    Stores the result of A* search.
-
-    Metrics:
-        job
-        cost = f(n)
-        g_cost
-        h_cost
-        jobs_expanded
-        jobs_generated
-        execution_time_s
-    """
-
     job: Job | None
     cost: float
-    g_cost: float
-    h_cost: float
     jobs_expanded: int
-    jobs_generated: int
+    nodes_generated: int
     execution_time_s: float
+    g_cost: float = 0.0
+    h_cost: float = 0.0
 
     @property
     def found(self) -> bool:
-        """
-        Return True if a suitable job was found.
-        """
-
         return self.job is not None
+
+    @property
+    def jobs_generated(self) -> int:
+        """
+        Backward-compatible name for reporting.
+        """
+        return self.nodes_generated
 
 
 # ==========================================================
-# Load Jobs
+# LOAD JOBS
 # ==========================================================
 
 def load_jobs(path: str | Path) -> list[Job]:
@@ -126,20 +147,13 @@ def load_jobs(path: str | Path) -> list[Job]:
             f"Job data file was not found: {path}"
         )
 
-    with open(
-        path,
-        "r",
-        encoding="utf-8"
-    ) as file:
-
+    with open(path, "r", encoding="utf-8") as file:
         data = json.load(file)
 
     if not isinstance(data, list):
         raise ValueError(
             "jobs.json must contain a list of job objects."
         )
-
-    jobs: list[Job] = []
 
     required_fields = {
         "id",
@@ -154,20 +168,16 @@ def load_jobs(path: str | Path) -> list[Job]:
         "shift_end",
     }
 
-    for index, item in enumerate(
-        data,
-        start=1
-    ):
+    jobs = []
+
+    for index, item in enumerate(data, start=1):
 
         if not isinstance(item, dict):
             raise ValueError(
                 f"Job record {index} must be a JSON object."
             )
 
-        missing = (
-            required_fields
-            - set(item.keys())
-        )
+        missing = required_fields - set(item.keys())
 
         if missing:
             raise ValueError(
@@ -175,38 +185,29 @@ def load_jobs(path: str | Path) -> list[Job]:
                 f"{', '.join(sorted(missing))}"
             )
 
-        if not isinstance(
-            item["skills"],
-            list
-        ):
-            raise ValueError(
-                f"Job record {index}: "
-                "'skills' must be a list."
+        jobs.append(
+            Job(
+                id=str(item["id"]),
+                title=str(item["title"]),
+                company=str(item["company"]),
+                min_age=int(item["min_age"]),
+                skills=[
+                    str(skill).strip()
+                    for skill in item["skills"]
+                ],
+                distance=float(item["distance"]),
+                hours=int(item["hours"]),
+                salary=float(item["salary"]),
+                shift_start=int(item["shift_start"]),
+                shift_end=int(item["shift_end"]),
             )
-
-        job = Job(
-            id=str(item["id"]),
-            title=str(item["title"]),
-            company=str(item["company"]),
-            min_age=int(item["min_age"]),
-            skills=[
-                str(skill).strip()
-                for skill in item["skills"]
-            ],
-            distance=float(item["distance"]),
-            hours=int(item["hours"]),
-            salary=float(item["salary"]),
-            shift_start=int(item["shift_start"]),
-            shift_end=int(item["shift_end"]),
         )
-
-        jobs.append(job)
 
     return jobs
 
 
 # ==========================================================
-# Constraint Checking
+# HARD CONSTRAINTS
 # ==========================================================
 
 def check_constraints(
@@ -214,52 +215,29 @@ def check_constraints(
     job: Job
 ) -> bool:
     """
-    Check all hard constraints.
-
-    A job is valid only if:
-
-        age is sufficient
-        distance is acceptable
-        hours are acceptable
-        shift fits availability
-        at least one skill matches
+    Check all mandatory eligibility constraints.
     """
 
-    # ------------------------------------------------------
     # Age
-    # ------------------------------------------------------
-
     if student.age < job.min_age:
         return False
 
-    # ------------------------------------------------------
     # Distance
-    # ------------------------------------------------------
-
     if job.distance > student.max_distance:
         return False
 
-    # ------------------------------------------------------
-    # Working Hours
-    # ------------------------------------------------------
-
+    # Maximum working hours
     if job.hours > student.max_hours:
         return False
 
-    # ------------------------------------------------------
-    # Schedule
-    # ------------------------------------------------------
-
+    # Working availability
     if job.shift_start < student.available_start:
         return False
 
     if job.shift_end > student.available_end:
         return False
 
-    # ------------------------------------------------------
-    # Skills
-    # ------------------------------------------------------
-
+    # Skill requirement
     student_skills = {
         skill.strip().lower()
         for skill in student.skills
@@ -270,16 +248,66 @@ def check_constraints(
         for skill in job.skills
     }
 
-    if not student_skills.intersection(
-        job_skills
-    ):
+    if not student_skills.intersection(job_skills):
         return False
 
     return True
 
 
 # ==========================================================
-# Cost Calculation
+# STAGE COST
+# ==========================================================
+
+def stage_cost(
+    student: Student,
+    job: Job,
+    stage: int
+) -> float:
+    """
+    Calculate the cost contributed by each A* stage.
+
+    Stage 0:
+        Skill mismatch = 40%
+
+    Stage 1:
+        Distance = 30%
+
+    Stage 2:
+        Working hours = 20%
+
+    Stage 3:
+        Salary = 10%
+    """
+
+    if stage == 0:
+        return (
+            skill_mismatch_cost(student, job)
+            * 0.40
+        )
+
+    if stage == 1:
+        return (
+            distance_cost(student, job)
+            * 0.30
+        )
+
+    if stage == 2:
+        return (
+            working_hours_cost(student, job)
+            * 0.20
+        )
+
+    if stage == 3:
+        return (
+            salary_cost(job)
+            * 0.10
+        )
+
+    return 0.0
+
+
+# ==========================================================
+# COMPLETE COST
 # ==========================================================
 
 def calculate_cost(
@@ -287,21 +315,67 @@ def calculate_cost(
     job: Job
 ) -> float:
     """
-    Return complete A* cost f(n).
+    Calculate the complete suitability cost of a job.
 
-    Invalid jobs receive infinity.
+    Lower cost = better match.
+
+    This function combines all four weighted components:
+        40% skill mismatch
+        30% distance
+        20% working hours
+        10% salary
     """
 
-    if not check_constraints(
-        student,
-        job
-    ):
-        return float("inf")
-
-    return calculate_f_cost(
-        student,
-        job
+    return (
+        skill_mismatch_cost(student, job) * 0.40
+        + distance_cost(student, job) * 0.30
+        + working_hours_cost(student, job) * 0.20
+        + salary_cost(job) * 0.10
     )
+
+
+# ==========================================================
+# HEURISTIC
+# ==========================================================
+
+def heuristic(
+    student: Student,
+    job: Job,
+    stage: int
+) -> float:
+    """
+    Estimate the remaining cost from the current stage.
+
+    h(n) contains only costs from future stages.
+
+    This keeps:
+        f(n) = g(n) + h(n)
+
+    and avoids double-counting costs.
+    """
+
+    if stage == 0:
+
+        return (
+            distance_cost(student, job) * 0.30
+            + working_hours_cost(student, job) * 0.20
+            + salary_cost(job) * 0.10
+        )
+
+    if stage == 1:
+
+        return (
+            working_hours_cost(student, job) * 0.20
+            + salary_cost(job) * 0.10
+        )
+
+    if stage == 2:
+
+        return (
+            salary_cost(job) * 0.10
+        )
+
+    return 0.0
 
 
 # ==========================================================
@@ -313,92 +387,73 @@ def a_star_search(
     jobs: list[Job]
 ) -> SearchResult:
     """
-    Perform A* search for the most suitable job.
+    Perform A* search over valid job candidates.
 
-    A* evaluation:
+    Each valid job moves through four evaluation stages:
+
+        0 -> Skill
+        1 -> Distance
+        2 -> Hours
+        3 -> Salary
+        4 -> Goal
+
+    The frontier is ordered using:
 
         f(n) = g(n) + h(n)
-
-    State representation:
-
-        START
-          |
-          +---- Job 1
-          |
-          +---- Job 2
-          |
-          +---- Job 3
-          |
-         ...
-          |
-         GOAL
-
-    Invalid jobs are removed before entering the frontier.
-
-    Returns:
-        SearchResult
     """
 
     start_time = time.perf_counter()
-
-    # ------------------------------------------------------
-    # Priority queue
-    #
-    # Tuple:
-    #
-    # (f_cost, counter, job, g_cost, h_cost)
-    # ------------------------------------------------------
 
     frontier = []
 
     counter = 0
 
-    jobs_generated = 0
     jobs_expanded = 0
+    nodes_generated = 0
 
     # ------------------------------------------------------
-    # Generate valid job states
+    # INITIAL STATE
     # ------------------------------------------------------
 
     for job in jobs:
 
-        if not check_constraints(
-            student,
-            job
-        ):
+        # Apply hard constraints first.
+        if not check_constraints(student, job):
             continue
 
-        g_cost = calculate_g_cost(
+        g = stage_cost(
             student,
-            job
+            job,
+            0
         )
 
-        h_cost = calculate_h_cost(
+        h = heuristic(
             student,
-            job
+            job,
+            0
         )
 
-        f_cost = round(
-            g_cost + h_cost,
-            4
+        node = SearchNode(
+            job=job,
+            stage=0,
+            g_cost=g,
+            h_cost=h
         )
 
         heapq.heappush(
             frontier,
             (
-                f_cost,
+                node.f_cost,
                 counter,
-                job,
-                g_cost,
-                h_cost,
+                node
             )
         )
 
         counter += 1
-        jobs_generated += 1
+        nodes_generated += 1
 
     # ------------------------------------------------------
-    # No valid jobs
+    # NO VALID JOBS
     # ------------------------------------------------------
 
     if not frontier:
@@ -406,107 +461,100 @@ def a_star_search(
         return SearchResult(
             job=None,
             cost=float("inf"),
-            g_cost=float("inf"),
-            h_cost=float("inf"),
             jobs_expanded=0,
-            jobs_generated=0,
+            nodes_generated=0,
             execution_time_s=(
                 time.perf_counter()
                 - start_time
             ),
+            g_cost=float("inf"),
+            h_cost=0.0
         )
 
     # ------------------------------------------------------
-    # A* Search
+    # A* LOOP
     # ------------------------------------------------------
 
     while frontier:
 
-        (
-            f_cost,
-            _,
-            job,
-            g_cost,
-            h_cost,
-        ) = heapq.heappop(
-            frontier
-        )
+        _, _, current = heapq.heappop(frontier)
 
         jobs_expanded += 1
 
         # --------------------------------------------------
-        # Goal Test
-        #
-        # The first valid job removed from the A*
-        # priority queue has the lowest f(n).
+        # GOAL TEST
         # --------------------------------------------------
 
-        return SearchResult(
-            job=job,
-            cost=f_cost,
-            g_cost=g_cost,
-            h_cost=h_cost,
-            jobs_expanded=jobs_expanded,
-            jobs_generated=jobs_generated,
-            execution_time_s=(
-                time.perf_counter()
-                - start_time
-            ),
+        if current.is_goal:
+
+            return SearchResult(
+                job=current.job,
+                cost=current.g_cost,
+                jobs_expanded=jobs_expanded,
+                nodes_generated=nodes_generated,
+                execution_time_s=(
+                    time.perf_counter()
+                    - start_time
+                ),
+                g_cost=current.g_cost,
+                h_cost=current.h_cost
+            )
+
+        # --------------------------------------------------
+        # EXPAND NEXT STAGE
+        # --------------------------------------------------
+
+        next_stage = current.stage + 1
+
+        additional_cost = stage_cost(
+            student,
+            current.job,
+            next_stage
         )
 
+        new_g = (
+            current.g_cost
+            + additional_cost
+        )
+
+        new_h = heuristic(
+            student,
+            current.job,
+            next_stage
+        )
+
+        child = SearchNode(
+            job=current.job,
+            stage=next_stage,
+            g_cost=new_g,
+            h_cost=new_h
+        )
+
+        heapq.heappush(
+            frontier,
+            (
+                child.f_cost,
+                counter,
+                child
+            )
+        )
+
+        counter += 1
+        nodes_generated += 1
+
     # ------------------------------------------------------
-    # Safety fallback
+    # FALLBACK
     # ------------------------------------------------------
 
     return SearchResult(
         job=None,
         cost=float("inf"),
-        g_cost=float("inf"),
-        h_cost=float("inf"),
         jobs_expanded=jobs_expanded,
-        jobs_generated=jobs_generated,
+        nodes_generated=nodes_generated,
         execution_time_s=(
             time.perf_counter()
             - start_time
         ),
-    )
-
-
-# ==========================================================
-# Backward-Compatible Alias
-# ==========================================================
-
-def uniform_cost_search(
-    student: Student,
-    jobs: list[Job]
-) -> SearchResult:
-    """
-    Backward-compatible wrapper.
-
-    The project now uses A*.
-
-    This function is retained so older code does not
-    immediately break, but new code should use:
-
-        a_star_search()
-    """
-
-    return a_star_search(
-        student,
-        jobs
-    )
-
-
-# ==========================================================
-# Module Test
-# ==========================================================
-
-if __name__ == "__main__":
-
-    print(
-        "FairWork AI module loaded successfully."
-    )
-
-    print(
-        "Search method: A*"
+        g_cost=float("inf"),
+        h_cost=0.0
     )

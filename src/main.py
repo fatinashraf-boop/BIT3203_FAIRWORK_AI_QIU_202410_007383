@@ -20,7 +20,11 @@ from pathlib import Path
 
 from fairwork_ai import (
     Student,
+    Job,
+    SearchResult,
     load_jobs,
+    check_constraints,
+    calculate_cost,
     a_star_search,
 )
 
