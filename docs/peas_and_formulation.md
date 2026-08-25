@@ -15,11 +15,11 @@
 
 ## Environment properties
 
-- Observable: <!-- (partially) The agent can observe available information about students and job vacancies, but it cannot know all real-world factors, such as whether a job is truly safe, whether the employer is reliable, or unexpected changes in work schedules.-->
-- Deterministic: <!-- (no) The same student and job information may not always lead to the same outcome because vacancies can change, employers may reject applicants, and job information may be incomplete or inaccurate. -->
-- Sequential: <!-- The agent's decisions can influence later actions. For example, a student may view a recommendation, apply for a job and later update their preferences or profile based on the outcome. -->
-- Dynamic: <!-- Job vacancies, availability, working hours and employer requirements may change while the agent is operating. New jobs can be added and existing jobs can become unavailable. -->
-- Discrete: <!-- The agent mainly works with discrete data and decisions, such as eligible/not eligible, suitable/unsuitable, recommended/not recommended and different job categories. -->
+- Observable: (partially) The agent can observe available information about students and job vacancies, but it cannot know all real-world factors, such as whether a job is truly safe, whether the employer is reliable, or unexpected changes in work schedules.
+- Deterministic: (no) The same student and job information may not always lead to the same outcome because vacancies can change, employers may reject applicants, and job information may be incomplete or inaccurate.
+- Sequential: The agent's decisions can influence later actions. For example, a student may view a recommendation, apply for a job and later update their preferences or profile based on the outcome.
+- Dynamic: Job vacancies, availability, working hours and employer requirements may change while the agent is operating. New jobs can be added and existing jobs can become unavailable.
+- Discrete: The agent mainly works with discrete data and decisions, such as eligible/not eligible, suitable/unsuitable, recommended/not recommended and different job categories.
 
 ## State or variables
 The state in FairWork AI represents the current job candidate being evaluated for a particular student. The complete problem state is defined by the student's profile, constraints and the available job vacancies.

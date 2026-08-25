@@ -52,10 +52,40 @@ f(n) = g(n) + h(n)
 
 ## PEAS
 
-- Performance measure:
-- Environment: 
-- Actuators:
-- Sensors:
+- **Performance Measure:**
+  - Recommendation accuracy
+  - Constraint satisfaction
+  - Search cost
+  - Execution time
+  - Number of jobs expanded
+  - User suitability
+
+- **Environment:**
+  - Student profile
+  - Part-time job dataset
+  - Job requirements
+  - Working schedules
+  - Distance constraints
+  - Student preferences
+
+- **Actuators:**
+  - Reject unsuitable jobs
+  - Calculate job costs
+  - Expand search states
+  - Rank suitable jobs
+  - Recommend the best job
+
+- **Sensors:**
+  - Student age
+  - Student skills
+  - Available working hours
+  - Maximum working hours
+  - Maximum travel distance
+  - Job age requirements
+  - Job skills
+  - Job distance
+  - Job schedule
+  - Job salary
 
 ## Installation
 
@@ -66,13 +96,14 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-## Running the prototype
+## Running the Prototype
+
+After installing the dependencies, run the FairWork AI prototype from
+the project root:
 
 ```powershell
 python src/main.py
 ```
-
-Update this section when your implementation is ready.
 
 ## Testing
 
